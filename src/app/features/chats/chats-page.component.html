@@ -79,7 +79,7 @@
             <ul class="user-results" *ngIf="userResults.length > 0">
               <li *ngFor="let user of userResults" (click)="selectUser(user)">
                 <div class="name">{{ user.displayName || user.username }}</div>
-                <div class="meta">ID: {{ user.id }}</div>
+                <div class="meta">{{ '@'+user.username }}</div>
               </li>
             </ul>
           </ng-container>
@@ -204,7 +204,7 @@
                 <ul class="user-results" *ngIf="memberSearchResults.length > 0">
                   <li *ngFor="let user of memberSearchResults" (click)="selectMemberCandidate(user)">
                     <div class="name">{{ user.displayName || user.username }}</div>
-                    <div class="meta">ID: {{ user.id }}</div>
+                    <div class="meta">{{ '@'+user.username }}</div>
                   </li>
                 </ul>
               </ng-container>
@@ -221,7 +221,7 @@
               <p class="hint" *ngIf="members.length === 0">No members found.</p>
               <ul class="member-list" *ngIf="members.length > 0">
                 <li *ngFor="let member of members; trackBy: trackByUserId">
-                  <div class="member-id">{{ member }}</div>
+                  <div class="member-id">{{ userLabel(member) }}</div>
                   <div class="member-actions">
                     <button
                       type="button"
@@ -259,7 +259,7 @@
           >
             <div class="bubble">
               <div class="meta-line">
-                <span class="sender">{{ message.senderId }}</span>
+                <span class="sender">{{ userLabel(message.senderId) }}&nbsp;</span>
                 <span class="time">{{ message.dateSent | date:'short' }}</span>
               </div>
               <div class="content">{{ message.content }}</div>

@@ -18,5 +18,6 @@ export const environment = {
     password: 'http://localhost:8082/password',
     media: 'http://localhost:8083/media',
     search: 'http://localhost:8084/search'
-  }
+  },
+  notificationWs: 'http://localhost:8085/ws'
 };

@@ -5,6 +5,10 @@
     <title>PRPO Chat Frontend</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+      // Ensure Node-style globals exist before bundled scripts run.
+      window.global = window;
+    </script>
   </head>
   <body>
     <app-root></app-root>

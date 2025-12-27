@@ -19,4 +19,12 @@ export class ToastContainerComponent {
   close(id: number) {
     this.toastService.dismiss(id);
   }
+
+  invoke(toast: { id: number; function: () => void }) {
+    try {
+      toast.function();
+    } finally {
+      this.toastService.dismiss(toast.id);
+    }
+  }
 }

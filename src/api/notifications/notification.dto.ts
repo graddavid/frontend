@@ -8,7 +8,7 @@ export enum NotificationStatus {
 }
 
 export interface NotificationResponse {
-  id: number;
+  id: string;
   recipientId: string;
   senderId: string;
   channelId: string;

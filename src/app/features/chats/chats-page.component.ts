@@ -22,6 +22,8 @@ import { UserSearchResult } from '../../../api/search/search.dto';
 import { ServerApi } from '../../../api/servers/server.api';
 import { MessageApi } from '../../../api/messages/message.api';
 import { Message, MessageDto } from '../../../api/messages/message.dto';
+import { UserApi } from '../../../api/users/user.api';
+import { UserDto } from '../../../api/users/user.dto';
 import { AuthStore } from '../../core/state/auth.store';
 import { ToastService } from '../../core/ui/toast/toast.service';
 import { ErrorToastService } from '../../core/ui/toast/error-toast.service';
@@ -39,6 +41,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
   private readonly serverApi = inject(ServerApi);
   private readonly searchApi = inject(SearchApi);
   private readonly messageApi = inject(MessageApi);
+  private readonly userApi = inject(UserApi);
   private readonly authStore = inject(AuthStore);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -50,6 +53,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
 
   members: string[] = [];
   membersLoading = false;
+  private readonly userCache = new Map<string, { username: string; displayName?: string }>();
 
   messages: Message[] = [];
   messagesLoading = false;
@@ -157,7 +161,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
   setType(type: ServerType) {
     this.createForm.patchValue({ type });
     if (type === ServerType.DM && this.selectedUser && !this.createForm.controls.name.value) {
-      this.createForm.patchValue({ name: this.selectedUser.username });
+      this.createForm.patchValue({ name: this.composeDmName(this.selectedUser.username) });
     }
     if (type === ServerType.GROUP) {
       this.selectedUser = null;
@@ -168,7 +172,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
   selectUser(user: UserSearchResult) {
     this.selectedUser = user;
     if (this.createForm.controls.type.value === ServerType.DM) {
-      this.createForm.patchValue({ name: user.displayName || user.username });
+      this.createForm.patchValue({ name: this.composeDmName(user.username) });
     }
   }
 
@@ -202,6 +206,8 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
       type,
       profile: bio?.trim() ? { bio: bio.trim() } : undefined
     };
+
+    console.log(currentUser.id, dmUserId);
 
     this.createPending = true;
     this.serverApi
@@ -382,8 +388,9 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
       .sendMessage(payload)
       .pipe(
         tap((message) => {
-          this.messages.push(message);
+          this.messages = [message, ...this.messages];
           this.sendForm.reset({ content: '' });
+          this.fetchUsers([message.senderId]);
         }),
         catchError((err) => {
           this.errorToast.toastError(err, 'Could not send message');
@@ -418,7 +425,9 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
         })
       )
       .subscribe((results) => {
-        this.userResults = results;
+        const filtered = this.filterOutCurrentUser(results);
+        this.cacheUsers(filtered);
+        this.userResults = filtered;
         this.searchingUsers = false;
       });
   }
@@ -450,7 +459,9 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
         })
       )
       .subscribe((results) => {
-        this.memberSearchResults = results;
+        const filtered = this.filterOutCurrentUser(results);
+        this.cacheUsers(filtered);
+        this.memberSearchResults = filtered;
         this.searchingMembers = false;
       });
   }
@@ -490,7 +501,10 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
         }),
         finalize(() => (this.membersLoading = false))
       )
-      .subscribe((members) => (this.members = members));
+      .subscribe((members) => {
+        this.members = members;
+        this.fetchUsers(members);
+      });
   }
 
   private loadMessages(serverId: string, page: number, append: boolean) {
@@ -507,6 +521,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
       .subscribe((result) => {
         const merged = append ? [...this.messages, ...result.content] : result.content;
         this.messages = merged;
+        this.fetchUsers(merged.map((m) => m.senderId));
         this.messagesPage = page;
         this.messagesLastPage = result.last ?? result.content.length < this.pageSize;
       });
@@ -545,5 +560,50 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
         ? server.type
         : (String(server.type || '').toUpperCase() as ServerType) || ServerType.GROUP;
     return { ...server, type: normalizedType };
+  }
+
+  private composeDmName(targetUsername: string | undefined): string {
+    const currentUsername = this.authStore.snapshot?.username;
+    if (currentUsername && targetUsername) {
+      return `${currentUsername}-${targetUsername}`;
+    }
+    return targetUsername || '';
+  }
+
+  private cacheUsers(users: Array<UserSearchResult | UserDto>) {
+    users.forEach((user) => {
+      if (user?.id) {
+        this.userCache.set(user.id, { username: user.username, displayName: (user as any).displayName });
+      }
+    });
+  }
+
+  private fetchUsers(userIds: string[]) {
+    const unique = Array.from(new Set(userIds.filter(Boolean)));
+    const missing = unique.filter((id) => !this.userCache.has(id));
+    missing.forEach((id) => {
+      this.userApi.getById(id).subscribe({
+        next: (user) => this.cacheUsers([user]),
+        error: () => {
+          // ignore fetch errors; we fall back to showing the id
+        }
+      });
+    });
+  }
+
+  userLabel(userId: string): string {
+    const cached = this.userCache.get(userId);
+    if (cached) {
+      return cached.displayName || cached.username || userId;
+    }
+    return userId;
+  }
+
+  private filterOutCurrentUser<T extends { id: string }>(users: T[]): T[] {
+    const currentUserId = this.authStore.snapshot?.id;
+    if (!currentUserId) {
+      return users;
+    }
+    return users.filter((u) => u.id !== currentUserId);
   }
 }

@@ -1,7 +1,14 @@
 <div class="toast-stack" *ngIf="(toasts$ | async) as toasts">
-  <article class="toast" *ngFor="let toast of toasts" [class.error]="toast.type === 'error'" [class.info]="toast.type === 'info'" [class.success]="toast.type === 'success'">
+  <article
+    class="toast"
+    *ngFor="let toast of toasts"
+    [class.error]="toast.type === 'error'"
+    [class.info]="toast.type === 'info'"
+    [class.success]="toast.type === 'success'"
+    (click)="invoke(toast)"
+  >
     <span class="dot"></span>
     <p>{{ toast.message }}</p>
-    <button type="button" aria-label="Close" (click)="close(toast.id)">×</button>
+    <button type="button" aria-label="Close" (click)="close(toast.id); $event.stopPropagation()">×</button>
   </article>
 </div>

@@ -3,32 +3,51 @@
     <div>
       <p class="eyebrow">Notification service</p>
       <h1>Notifications</h1>
-      <p class="hint">STOMP/WebSocket placeholders for new message and activity alerts.</p>
+      <p class="hint">Live feed via STOMP. Incoming notifications appear instantly; unread are fetched on each nav.</p>
     </div>
-    <a routerLink="/chats" class="ghost">Back to chats</a>
+    <div class="header-actions">
+      <button type="button" class="ghost" (click)="refresh()">Reconnect</button>
+      <a routerLink="/chats" class="ghost">Back to chats</a>
+    </div>
   </header>
 
   <div class="panel">
-    <div class="row">
-      <div class="card">
-        <div class="label">STOMP endpoint</div>
-        <p class="meta">Configure the endpoint and topics once backend URLs are available.</p>
-      </div>
-      <div class="card">
-        <div class="label">Subscriptions</div>
-        <p class="meta">Subscribe per user, per chat, or global feed for mentions.</p>
-      </div>
-    </div>
+    <h3>Unread</h3>
+    <p class="hint" *ngIf="unread().length === 0">No unread notifications.</p>
+    <ul class="list" *ngIf="unread().length > 0">
+      <li *ngFor="let n of unread()">
+        <div>
+          <div class="title">{{ n.text }}</div>
+          <p class="meta">
+            From: {{ n.senderId }} • Channel: {{ n.channelId }} • {{ n.createdAt | date:'short' }}
+          </p>
+        </div>
+        <button type="button" class="ghost" (click)="markAsRead(n.id)">Mark read</button>
+      </li>
+    </ul>
+  </div>
 
-    <div class="stream">
-      <div class="event">
-        <div class="title">New message</div>
-        <p class="meta">Incoming event rendered here after wiring STOMP client.</p>
-      </div>
-      <div class="event">
-        <div class="title">User joined group</div>
-        <p class="meta">Use Presence and Server services to show membership changes.</p>
-      </div>
-    </div>
+  <div class="panel">
+    <h3>All notifications</h3>
+    <p class="hint" *ngIf="notifications().length === 0">No notifications yet.</p>
+    <ul class="list" *ngIf="notifications().length > 0">
+      <li *ngFor="let n of notifications()">
+        <div>
+          <div class="title">{{ n.text }}</div>
+          <p class="meta">
+            From: {{ n.senderId }} • Channel: {{ n.channelId }} • {{ n.createdAt | date:'short' }} •
+            <span [class.unread]="n.status === NotificationStatus.UNREAD">{{ n.status }}</span>
+          </p>
+        </div>
+        <button
+          type="button"
+          class="ghost"
+          *ngIf="n.status === NotificationStatus.UNREAD"
+          (click)="markAsRead(n.id)"
+        >
+          Mark read
+        </button>
+      </li>
+    </ul>
   </div>
 </section>
