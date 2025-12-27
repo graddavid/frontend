@@ -108,7 +108,7 @@
             <p class="eyebrow">Direct messages</p>
             <h2>DMs</h2>
           </div>
-          <a routerLink="/users" class="ghost">Find users</a>
+      <a routerLink="/users" class="ghost">Find users</a>
         </header>
 
         <div *ngIf="loading" class="state">Loading your chats...</div>
@@ -297,10 +297,61 @@
       <ng-template #emptyChat>
         <div class="chat-placeholder">
           <div class="title">Pick a chat</div>
-          <p class="hint">Choose a DM or group on the left to open its conversation.</p>
+            <p class="hint">Choose a DM or group to open its conversation.</p>
           <p class="meta">We keep DMs and group servers separated for clarity.</p>
         </div>
       </ng-template>
+    </div>
+  </div>
+
+  <div class="dialog-backdrop" *ngIf="searchDialogOpen" (click)="closeSearchDialog()"></div>
+  <div class="dialog" *ngIf="searchDialogOpen" (click)="$event.stopPropagation()">
+    <header>
+      <h3>Search messages</h3>
+    </header>
+    <form [formGroup]="searchForm" (ngSubmit)="submitSearch()" class="search-form">
+      <label>
+        <span>Query</span>
+        <input type="text" formControlName="query" placeholder="Search text" [disabled]="searchPending" />
+      </label>
+      <label>
+        <span>Channel</span>
+        <input type="text" formControlName="channelId" placeholder="Channel ID (optional)" [disabled]="searchPending" />
+      </label>
+      <label>
+        <span>Sender</span>
+        <input type="text" formControlName="senderId" placeholder="Sender ID (optional)" [disabled]="searchPending" />
+      </label>
+      <div class="date-row">
+        <label>
+          <span>Date from</span>
+          <input type="date" formControlName="dateFrom" [disabled]="searchPending" />
+        </label>
+        <label>
+          <span>Date to</span>
+          <input type="date" formControlName="dateTo" [disabled]="searchPending" />
+        </label>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="ghost" (click)="closeSearchDialog()" [disabled]="searchPending">Cancel</button>
+        <button type="submit" class="primary" [disabled]="searchPending || searchForm.invalid">
+          {{ searchPending ? 'Searching...' : 'Search' }}
+        </button>
+      </div>
+    </form>
+    <div class="state error" *ngIf="searchError">{{ searchError }}</div>
+    <div class="results" *ngIf="searchResults.length">
+      <h4>Results ({{ searchResults.length }})</h4>
+      <ul>
+        <li *ngFor="let res of searchResults">
+          <div class="title">{{ res.content }}</div>
+          <div class="meta">
+            Channel: {{ serverLabelById(res.channelId) || 'Unknown' }} •
+            Sender: {{ userLabels[res.senderId] || res.senderId }} •
+            {{ res.dateSent | date:'short' }}
+          </div>
+        </li>
+      </ul>
     </div>
   </div>
 </section>

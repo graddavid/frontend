@@ -215,6 +215,10 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
       .pipe(
         tap((page) => {
           this.searchResults = page.content;
+          const senderIds = page.content.map((r) => r.senderId);
+          const channelIds = page.content.map((r) => r.channelId);
+          this.fetchUsers(senderIds);
+          channelIds.forEach((id) => this.fetchServer(id));
         }),
         catchError((err) => {
           this.searchError = err?.message || err?.error || 'Search failed';
@@ -555,6 +559,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
       )
       .subscribe((servers) => {
         this.servers = servers.map((server) => this.normalizeServer(server));
+        servers.forEach((s) => this.serverCache.set(s.id, s));
         this.hydrateDmNames(this.servers);
       });
   }
@@ -645,6 +650,18 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
     return server.name;
   }
 
+  serverLabelById(id: string | null | undefined): string {
+    if (!id) return '';
+    if (this.dmNameOverrides[id]) {
+      return this.dmNameOverrides[id];
+    }
+    const cached = this.serverCache.get(id);
+    if (cached) {
+      return cached.name;
+    }
+    return '';
+  }
+
   private composeDmName(targetUsername: string | undefined): string {
     const currentUsername = this.authStore.snapshot?.username;
     if (currentUsername && targetUsername) {
@@ -711,6 +728,21 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
         this.dmNameOverrides[serverId] = partnerId;
         return EMPTY;
       })
+    ).subscribe();
+  }
+
+  fetchServer(id: string) {
+    if (!id || this.serverCache.has(id)) {
+      return;
+    }
+    this.serverApi.getServer(id).pipe(
+      tap((s) => {
+        this.serverCache.set(id, s);
+        if (s.type === ServerType.DM) {
+          this.dmNameOverrides[id] = s.name;
+        }
+      }),
+      catchError(() => of(null))
     ).subscribe();
   }
 }
