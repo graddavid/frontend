@@ -78,7 +78,10 @@
             </p>
             <ul class="user-results" *ngIf="userResults.length > 0">
               <li *ngFor="let user of userResults" (click)="selectUser(user)">
-                <div class="name">{{ user.displayName || user.username }}</div>
+                <div class="name">
+                  <span class="presence" [class.online]="presenceStore.presence(user.id) === 'ONLINE'" [class.offline]="presenceStore.presence(user.id) === 'OFFLINE'"></span>
+                  {{ user.displayName || user.username }}
+                </div>
                 <div class="meta">{{ '@'+user.username }}</div>
               </li>
             </ul>
@@ -119,7 +122,7 @@
                 (click)="openServer(server.id)"
                 [class.active]="selectedServerId === server.id"
               >
-                <div class="name">{{ server.name }}</div>
+                <div class="name">{{ getServerName(server) }}</div>
                 <div class="meta">Direct message</div>
               </li>
             </ul>
@@ -163,7 +166,7 @@
         <div class="chat-header">
           <div>
             <p class="eyebrow">{{ server.type === 'DM' ? 'Direct message' : 'Group chat' }}</p>
-            <h2>{{ server.name }}</h2>
+            <h2>{{ getServerName(server) }}</h2>
             <p class="meta" *ngIf="server.profile?.bio">{{ server.profile?.bio }}</p>
           </div>
           <span class="tag">{{ server.type }}</span>
@@ -203,7 +206,10 @@
                 </p>
                 <ul class="user-results" *ngIf="memberSearchResults.length > 0">
                   <li *ngFor="let user of memberSearchResults" (click)="selectMemberCandidate(user)">
-                    <div class="name">{{ user.displayName || user.username }}</div>
+                    <div class="name">
+                      <span class="presence" [class.online]="presenceStore.presence(user.id) === 'ONLINE'" [class.offline]="presenceStore.presence(user.id) === 'OFFLINE'"></span>
+                      {{ user.displayName || user.username }}
+                    </div>
                     <div class="meta">{{ '@'+user.username }}</div>
                   </li>
                 </ul>
@@ -221,7 +227,10 @@
               <p class="hint" *ngIf="members.length === 0">No members found.</p>
               <ul class="member-list" *ngIf="members.length > 0">
                 <li *ngFor="let member of members; trackBy: trackByUserId">
-                  <div class="member-id">{{ userLabel(member) }}</div>
+                  <div class="member-id">
+                    <span class="presence" [class.online]="presenceStore.presence(member) === 'ONLINE'" [class.offline]="presenceStore.presence(member) === 'OFFLINE'"></span>
+                    {{ userLabel(member) }}
+                  </div>
                   <div class="member-actions">
                     <button
                       type="button"
@@ -259,7 +268,10 @@
           >
             <div class="bubble">
               <div class="meta-line">
-                <span class="sender">{{ userLabel(message.senderId) }}&nbsp;</span>
+                <span class="sender">
+                  <span class="presence" [class.online]="presenceStore.presence(message.senderId) === 'ONLINE'" [class.offline]="presenceStore.presence(message.senderId) === 'OFFLINE'"></span>
+                  {{ userLabel(message.senderId) }}&nbsp;
+                </span>
                 <span class="time">{{ message.dateSent | date:'short' }}</span>
               </div>
               <div class="content">{{ message.content }}</div>
@@ -273,7 +285,7 @@
           <input
             type="text"
             formControlName="content"
-            placeholder="Message {{ server.name }}"
+            placeholder="Message {{ getServerName(server) }}"
             [disabled]="sendPending"
           />
           <button type="submit" class="primary" [disabled]="sendPending">

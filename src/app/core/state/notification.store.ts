@@ -129,7 +129,6 @@ export class NotificationStore implements OnDestroy {
       client.onConnect = () => {
         this.reconnecting = false;
         this.notifiedFailure = false;
-        this.toast.success('Notifications connected');
         client.subscribe('/user/queue/notifications', (message) => {
           this.handleIncoming(message);
         });
@@ -147,7 +146,6 @@ export class NotificationStore implements OnDestroy {
           this.reconnecting = true;
           if (!this.notifiedFailure) {
             this.notifiedFailure = true;
-            this.errorToast.toastError('Notifications connection failed');
           }
           setTimeout(() => this.ensureActive(true), 2000);
         }

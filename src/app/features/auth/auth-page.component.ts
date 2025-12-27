@@ -9,6 +9,7 @@ import { AuthStore } from '../../core/state/auth.store';
 import { LoginRequest, RegisterRequest } from '../../../api/users/user.dto';
 import { ToastService } from '../../core/ui/toast/toast.service';
 import { ErrorToastService } from '../../core/ui/toast/error-toast.service';
+import { PresenceStore } from '../../core/state/presence.store';
 
 @Component({
   selector: 'app-auth-page',
@@ -25,6 +26,7 @@ export class AuthPageComponent {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly errorToast = inject(ErrorToastService);
+  private readonly presenceStore = inject(PresenceStore);
 
   readonly user$ = this.authStore.user$;
 
@@ -45,6 +47,7 @@ export class AuthPageComponent {
 
   logout() {
     this.authStore.clear();
+    this.presenceStore.setOffline();
     this.router.navigate(['/auth']);
     this.toast.info('Signed out');
   }
@@ -65,7 +68,10 @@ export class AuthPageComponent {
     const payload: LoginRequest = this.loginForm.getRawValue();
 
     this.userApi.login(payload).pipe(
-      tap((user) => this.authStore.setUser(user)),
+      tap((user) => {
+        this.authStore.setUser(user);
+        this.presenceStore.setOnline(user.id);
+      }),
       tap(() => this.router.navigate(['/chats'])),
       catchError((err) => {
         this.errorMessage = this.errorToast.toastError(err, 'Login failed');
@@ -93,7 +99,10 @@ export class AuthPageComponent {
     const payload: RegisterRequest = this.registerForm.getRawValue();
 
     this.userApi.register(payload).pipe(
-      tap((user) => this.authStore.setUser(user)),
+      tap((user) => {
+        this.authStore.setUser(user);
+        this.presenceStore.setOnline(user.id);
+      }),
       tap(() => this.router.navigate(['/chats'])),
       catchError((err) => {
         this.errorMessage = this.errorToast.toastError(err, 'Registration failed');

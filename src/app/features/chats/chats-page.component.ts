@@ -25,6 +25,7 @@ import { Message, MessageDto } from '../../../api/messages/message.dto';
 import { UserApi } from '../../../api/users/user.api';
 import { UserDto } from '../../../api/users/user.dto';
 import { AuthStore } from '../../core/state/auth.store';
+import { PresenceStore } from '../../core/state/presence.store';
 import { ToastService } from '../../core/ui/toast/toast.service';
 import { ErrorToastService } from '../../core/ui/toast/error-toast.service';
 
@@ -43,6 +44,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
   private readonly messageApi = inject(MessageApi);
   private readonly userApi = inject(UserApi);
   private readonly authStore = inject(AuthStore);
+  private readonly presenceStore = inject(PresenceStore);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);
@@ -54,6 +56,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
   members: string[] = [];
   membersLoading = false;
   private readonly userCache = new Map<string, { username: string; displayName?: string }>();
+  private readonly dmNameOverrides = new Map<string, string>();
 
   messages: Message[] = [];
   messagesLoading = false;
@@ -487,6 +490,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
       )
       .subscribe((servers) => {
         this.servers = servers.map((server) => this.normalizeServer(server));
+        this.hydrateDmNames(this.servers);
       });
   }
 
@@ -504,6 +508,11 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
       .subscribe((members) => {
         this.members = members;
         this.fetchUsers(members);
+        this.presenceStore.track(members);
+        const server = this.selectedServer;
+        if (server && server.type === ServerType.DM) {
+          this.updateDmName(server.id, members);
+        }
       });
   }
 
@@ -521,7 +530,9 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
       .subscribe((result) => {
         const merged = append ? [...this.messages, ...result.content] : result.content;
         this.messages = merged;
-        this.fetchUsers(merged.map((m) => m.senderId));
+        const senderIds = merged.map((m) => m.senderId);
+        this.fetchUsers(senderIds);
+        this.presenceStore.track(senderIds);
         this.messagesPage = page;
         this.messagesLastPage = result.last ?? result.content.length < this.pageSize;
       });
@@ -560,6 +571,13 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
         ? server.type
         : (String(server.type || '').toUpperCase() as ServerType) || ServerType.GROUP;
     return { ...server, type: normalizedType };
+  }
+
+  getServerName(server: Server): string {
+    if (server.type === ServerType.DM) {
+      return this.dmNameOverrides.get(server.id) || server.name;
+    }
+    return server.name;
   }
 
   private composeDmName(targetUsername: string | undefined): string {
@@ -605,5 +623,36 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
       return users;
     }
     return users.filter((u) => u.id !== currentUserId);
+  }
+
+  private hydrateDmNames(servers: Server[]) {
+    const currentUser = this.authStore.snapshot;
+    servers
+      .filter((s) => s.type === ServerType.DM)
+      .forEach((server) => {
+        this.membershipApi
+          .getUsers(server.id)
+          .pipe(catchError(() => of<string[]>([])))
+          .subscribe((members) => this.updateDmName(server.id, members));
+      });
+  }
+
+  private updateDmName(serverId: string, members: string[]) {
+    const currentUserId = this.authStore.snapshot?.id;
+    const partnerId = members.find((m) => m !== currentUserId) || members[0];
+    if (!partnerId) {
+      return;
+    }
+    this.userApi.getById(partnerId).pipe(
+      tap((user) => {
+        this.cacheUsers([user]);
+        const label = user?.username || partnerId;
+        this.dmNameOverrides.set(serverId, label);
+      }),
+      catchError(() => {
+        this.dmNameOverrides.set(serverId, partnerId);
+        return EMPTY;
+      })
+    ).subscribe();
   }
 }

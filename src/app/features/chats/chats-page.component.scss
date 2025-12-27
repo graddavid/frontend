@@ -340,6 +340,21 @@ textarea {
   justify-content: flex-start;
 }
 
+.presence {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  background: theme.$color-muted;
+}
+.presence.online {
+  background: #4caf50;
+}
+.presence.offline {
+  background: #9e9e9e;
+}
+
 .message.own {
   justify-content: flex-end;
 }
