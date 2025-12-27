@@ -10,7 +10,7 @@ import {
   tap
 } from 'rxjs';
 
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild, ElementRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -21,7 +21,7 @@ import { SearchApi } from '../../../api/search/search.api';
 import { MessageSearchResult, UserSearchResult } from '../../../api/search/search.dto';
 import { ServerApi } from '../../../api/servers/server.api';
 import { MessageApi } from '../../../api/messages/message.api';
-import { Message, MessageDto } from '../../../api/messages/message.dto';
+import { Message, MessageDto, MediaAttachment } from '../../../api/messages/message.dto';
 import { UserApi } from '../../../api/users/user.api';
 import { UserDto } from '../../../api/users/user.dto';
 import { AuthStore } from '../../core/state/auth.store';
@@ -29,6 +29,7 @@ import { PresenceStore } from '../../core/state/presence.store';
 import { PresenceStatusPipe } from '../../core/state/presence-status.pipe';
 import { ToastService } from '../../core/ui/toast/toast.service';
 import { ErrorToastService } from '../../core/ui/toast/error-toast.service';
+import { MediaApi } from '../../../api/media/media.api';
 
 @Component({
   selector: 'app-chats-page',
@@ -44,6 +45,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
   private readonly searchApi = inject(SearchApi);
   private readonly messageApi = inject(MessageApi);
   private readonly userApi = inject(UserApi);
+  private readonly mediaApi = inject(MediaApi);
   private readonly authStore = inject(AuthStore);
   private readonly presenceStore = inject(PresenceStore);
   private readonly router = inject(Router);
@@ -88,6 +90,8 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
   searchResults: MessageSearchResult[] = [];
   searchError = '';
   private routeSub?: Subscription;
+  selectedFiles: File[] = [];
+  @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
 
   readonly createForm = this.fb.nonNullable.group({
     type: [ServerType.GROUP, Validators.required],
@@ -128,6 +132,28 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
         }
         this.resetMemberState();
       });
+  }
+
+  downloadAttachment(media: MediaAttachment) {
+    if (media.downloadUrl) {
+      window.open(media.downloadUrl, '_blank', 'noopener');
+      return;
+    }
+    if (!media.id) {
+      this.toast.error('File cannot be downloaded.');
+      return;
+    }
+    this.mediaApi.download(media.id).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = media.filename || 'file';
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => this.errorToast.toastError(err, 'Could not download file')
+    });
   }
 
   ngOnDestroy(): void {
@@ -456,12 +482,17 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
     };
 
     this.sendPending = true;
+    const files = this.selectedFiles;
     this.messageApi
-      .sendMessage(payload)
+      .sendMessage(payload, files)
       .pipe(
         tap((message) => {
           this.messages = [message, ...this.messages];
           this.sendForm.reset({ content: '' });
+          this.selectedFiles = [];
+          if (this.fileInput?.nativeElement) {
+            this.fileInput.nativeElement.value = '';
+          }
           this.fetchUsers([message.senderId]);
         }),
         catchError((err) => {
@@ -471,6 +502,11 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
         finalize(() => (this.sendPending = false))
       )
       .subscribe();
+  }
+
+  onFilesSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    this.selectedFiles = input.files ? Array.from(input.files) : [];
   }
 
   private setupUserSearch() {

@@ -27,7 +27,16 @@ export class MessageApi {
     return this.http.get<Message>(apiUrl('message', `/${id}`));
   }
 
-  sendMessage(payload: MessageDto): Observable<Message> {
+  sendMessage(payload: MessageDto, files?: File[]): Observable<Message> {
+    if (files && files.length) {
+      const form = new FormData();
+      form.append(
+        'payload',
+        new Blob([JSON.stringify(payload)], { type: 'application/json' })
+      );
+      files.forEach((file) => form.append('files', file, file.name));
+      return this.http.post<Message>(apiUrl('message'), form);
+    }
     return this.http.post<Message>(apiUrl('message'), payload);
   }
 

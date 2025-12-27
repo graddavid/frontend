@@ -275,6 +275,16 @@
                 <span class="time">{{ message.dateSent | date:'short' }}</span>
               </div>
               <div class="content">{{ message.content }}</div>
+              <div class="attachments" *ngIf="message.media?.length">
+                <button
+                  type="button"
+                  class="attachment"
+                  *ngFor="let media of message.media"
+                  (click)="downloadAttachment(media)"
+                >
+                  📎 {{ media.filename }} ({{ media.contentType || 'file' }})
+                </button>
+              </div>
             </div>
           </div>
           <div class="state inline" *ngIf="messagesLoading && messages.length">Loading more...</div>
@@ -282,6 +292,18 @@
         </div>
 
         <form class="composer" [formGroup]="sendForm" (ngSubmit)="sendMessage(server.id)">
+          <div class="attachments-row">
+            <input
+              type="file"
+              multiple
+              #fileInput
+              (change)="onFilesSelected($event)"
+              [disabled]="sendPending"
+            />
+            <div class="selected-files" *ngIf="selectedFiles.length">
+              <span class="chip" *ngFor="let file of selectedFiles">{{ file.name }}</span>
+            </div>
+          </div>
           <input
             type="text"
             formControlName="content"

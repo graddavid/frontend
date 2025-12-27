@@ -13,6 +13,7 @@ export interface Message {
   status: MessageStatus;
   readBy: string[];
   dateSent: string;
+  media?: MediaAttachment[];
 }
 
 export interface MessageDto {
@@ -23,4 +24,15 @@ export interface MessageDto {
   status?: MessageStatus;
   readBy?: string[];
   dateSent?: string;
+  media?: MediaAttachment[];
+}
+
+export interface MediaAttachment {
+  id: string;
+  uploaderId: string;
+  filename: string;
+  contentType: string;
+  size: number;
+  uploadedAt?: string;
+  downloadUrl?: string;
 }
