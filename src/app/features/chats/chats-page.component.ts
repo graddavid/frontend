@@ -24,6 +24,7 @@ import { MessageApi } from '../../../api/messages/message.api';
 import { Message, MessageDto } from '../../../api/messages/message.dto';
 import { AuthStore } from '../../core/state/auth.store';
 import { ToastService } from '../../core/ui/toast/toast.service';
+import { ErrorToastService } from '../../core/ui/toast/error-toast.service';
 
 @Component({
   selector: 'app-chats-page',
@@ -42,6 +43,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);
+  private readonly errorToast = inject(ErrorToastService);
 
   servers: Server[] = [];
   selectedServerId: string | null = null;
@@ -213,8 +215,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
           this.resetMessages();
         }),
         catchError((err) => {
-          const message = err?.message || err?.error || 'Could not create chat';
-          this.toast.error(message);
+          this.errorToast.toastError(err, 'Could not create chat');
           return EMPTY;
         }),
         finalize(() => (this.createPending = false))
@@ -244,7 +245,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
           this.loadMembers(serverId);
         }),
         catchError((err) => {
-          this.toast.error(err?.message || err?.error || 'Could not add member');
+          this.errorToast.toastError(err, 'Could not add member');
           return EMPTY;
         }),
         finalize(() => (this.addMemberPending = false))
@@ -276,7 +277,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
           this.loadMembers(serverId);
         }),
         catchError((err) => {
-          this.toast.error(err?.message || err?.error || 'Could not ban member');
+          this.errorToast.toastError(err, 'Could not ban member');
           return EMPTY;
         }),
         finalize(() => (this.banPendingUserId = null))
@@ -308,7 +309,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
           this.loadMembers(serverId);
         }),
         catchError((err) => {
-          this.toast.error(err?.message || err?.error || 'Could not remove member');
+          this.errorToast.toastError(err, 'Could not remove member');
           return EMPTY;
         }),
         finalize(() => (this.banPendingUserId = null))
@@ -385,7 +386,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
           this.sendForm.reset({ content: '' });
         }),
         catchError((err) => {
-          this.toast.error(err?.message || err?.error || 'Could not send message');
+          this.errorToast.toastError(err, 'Could not send message');
           return EMPTY;
         }),
         finalize(() => (this.sendPending = false))
@@ -407,9 +408,10 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
             return of<UserSearchResult[]>([]);
           }
           return this.searchApi.searchUsers(trimmed).pipe(
-            catchError(() => {
+            catchError((err) => {
               this.userResults = [];
               this.searchingUsers = false;
+              this.errorToast.toastError(err, 'Could not search users');
               return of<UserSearchResult[]>([]);
             })
           );
@@ -438,9 +440,10 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
             return of<UserSearchResult[]>([]);
           }
           return this.searchApi.searchUsers(trimmed).pipe(
-            catchError(() => {
+            catchError((err) => {
               this.memberSearchResults = [];
               this.searchingMembers = false;
+              this.errorToast.toastError(err, 'Could not search users');
               return of<UserSearchResult[]>([]);
             })
           );
@@ -466,8 +469,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
       .getServers(currentUser.id)
       .pipe(
         catchError((err) => {
-          this.errorMessage = err?.message || err?.error || 'Failed to load servers';
-          this.toast.error(this.errorMessage);
+          this.errorMessage = this.errorToast.toastError(err, 'Failed to load servers');
           return of<Server[]>([]);
         }),
         finalize(() => (this.loading = false))
@@ -483,7 +485,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
       .getUsers(serverId)
       .pipe(
         catchError((err) => {
-          this.toast.error(err?.message || err?.error || 'Could not load members');
+          this.errorToast.toastError(err, 'Could not load members');
           return of<string[]>([]);
         }),
         finalize(() => (this.membersLoading = false))
@@ -497,7 +499,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
       .getMessagesForChannel(serverId, page, this.pageSize)
       .pipe(
         catchError((err) => {
-          this.toast.error(err?.message || err?.error || 'Could not load messages');
+          this.errorToast.toastError(err, 'Could not load messages');
           return of({ content: [], last: true, number: page });
         }),
         finalize(() => (this.messagesLoading = false))

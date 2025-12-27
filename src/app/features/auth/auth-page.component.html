@@ -26,7 +26,7 @@
             <span>Password</span>
             <input type="password" formControlName="password" placeholder="Create a password" />
           </label>
-          <button type="submit" [disabled]="loginPending || loginForm.invalid">
+          <button type="submit" [disabled]="loginPending">
             {{ loginPending ? 'Signing in...' : 'Continue' }}
           </button>
         </form>
@@ -45,7 +45,7 @@
             <span>Password</span>
             <input type="password" formControlName="password" placeholder="Create a password" />
           </label>
-          <button type="submit" [disabled]="registerPending || registerForm.invalid">
+          <button type="submit" [disabled]="registerPending">
             {{ registerPending ? 'Creating...' : 'Create account' }}
           </button>
         </form>

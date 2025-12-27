@@ -8,6 +8,7 @@ import { UserApi } from '../../../api/users/user.api';
 import { AuthStore } from '../../core/state/auth.store';
 import { LoginRequest, RegisterRequest } from '../../../api/users/user.dto';
 import { ToastService } from '../../core/ui/toast/toast.service';
+import { ErrorToastService } from '../../core/ui/toast/error-toast.service';
 
 @Component({
   selector: 'app-auth-page',
@@ -23,6 +24,7 @@ export class AuthPageComponent {
   private readonly authStore = inject(AuthStore);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly errorToast = inject(ErrorToastService);
 
   readonly user$ = this.authStore.user$;
 
@@ -48,7 +50,13 @@ export class AuthPageComponent {
   }
 
   submitLogin() {
-    if (this.loginPending || this.loginForm.invalid) {
+    if (this.loginPending) {
+      return;
+    }
+    if (this.loginForm.invalid) {
+      this.errorMessage = 'Username and password are required.';
+      this.toast.error(this.errorMessage);
+      this.loginForm.markAllAsTouched();
       return;
     }
 
@@ -60,8 +68,7 @@ export class AuthPageComponent {
       tap((user) => this.authStore.setUser(user)),
       tap(() => this.router.navigate(['/chats'])),
       catchError((err) => {
-        this.errorMessage = err?.message || err?.error || 'Login failed';
-        this.toast.error(this.errorMessage);
+        this.errorMessage = this.errorToast.toastError(err, 'Login failed');
         return EMPTY;
       }),
       finalize(() => (this.loginPending = false))
@@ -70,7 +77,14 @@ export class AuthPageComponent {
   }
 
   submitRegister() {
-    if (this.registerPending || this.registerForm.invalid) {
+    if (this.registerPending) {
+      return;
+    }
+    if (this.registerForm.invalid) {
+      this.errorMessage =
+        'Please provide a valid email, username (min 2 chars) and password (min 3 chars).';
+      this.toast.error(this.errorMessage);
+      this.registerForm.markAllAsTouched();
       return;
     }
 
@@ -82,8 +96,7 @@ export class AuthPageComponent {
       tap((user) => this.authStore.setUser(user)),
       tap(() => this.router.navigate(['/chats'])),
       catchError((err) => {
-        this.errorMessage = err?.message || err?.error || 'Registration failed';
-        this.toast.error(this.errorMessage);
+        this.errorMessage = this.errorToast.toastError(err, 'Registration failed');
         return EMPTY;
       }),
       finalize(() => (this.registerPending = false))
