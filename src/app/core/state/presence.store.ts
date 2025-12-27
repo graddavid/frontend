@@ -39,6 +39,12 @@ export class PresenceStore implements OnDestroy {
     }
   }
 
+  setTracked(ids: string[]) {
+    this.tracked.clear();
+    ids.filter(Boolean).forEach((id) => this.tracked.add(id));
+    this.fetch().subscribe();
+  }
+
   setOnline(userId: string) {
     if (!userId) {
       return;

@@ -9,23 +9,10 @@
       <ng-template #authLink>
         <a routerLink="/auth" class="ghost">Login / Register</a>
       </ng-template>
-      <a routerLink="/chats" class="primary">Open chats</a>
     </nav>
   </header>
 
   <div class="body">
-    <aside class="sidebar">
-      <div class="section-label">Navigate</div>
-      <ul>
-        <li *ngFor="let link of navLinks">
-          <a [routerLink]="link.path" routerLinkActive="active">
-            <div class="label">{{ link.label }}</div>
-            <div class="description">{{ link.description }}</div>
-          </a>
-        </li>
-      </ul>
-    </aside>
-
     <main class="content">
       <router-outlet></router-outlet>
     </main>

@@ -23,12 +23,7 @@ export class ShellComponent {
 
   readonly user$ = this.authStore.user$;
   readonly navLinks: NavLink[] = [
-    { path: '/chats', label: 'Chats', description: 'DMs and group chats' },
-    { path: '/users', label: 'Users', description: 'Directory and profiles' },
-    { path: '/search', label: 'Search', description: 'Messages, users, servers' },
-    { path: '/media', label: 'Media', description: 'Files and uploads' },
-    { path: '/notifications', label: 'Notifications', description: 'STOMP stream' },
-    { path: '/presence', label: 'Presence', description: 'Who is online' }
+    { path: '/chats', label: 'Chats', description: 'DMs and group chats' }
   ];
 
   logout() {

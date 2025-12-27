@@ -18,7 +18,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MembershipApi } from '../../../api/servers/membership.api';
 import { Server, ServerCreateRequest, ServerType } from '../../../api/servers/server.dto';
 import { SearchApi } from '../../../api/search/search.api';
-import { UserSearchResult } from '../../../api/search/search.dto';
+import { MessageSearchResult, UserSearchResult } from '../../../api/search/search.dto';
 import { ServerApi } from '../../../api/servers/server.api';
 import { MessageApi } from '../../../api/messages/message.api';
 import { Message, MessageDto } from '../../../api/messages/message.dto';
@@ -26,13 +26,14 @@ import { UserApi } from '../../../api/users/user.api';
 import { UserDto } from '../../../api/users/user.dto';
 import { AuthStore } from '../../core/state/auth.store';
 import { PresenceStore } from '../../core/state/presence.store';
+import { PresenceStatusPipe } from '../../core/state/presence-status.pipe';
 import { ToastService } from '../../core/ui/toast/toast.service';
 import { ErrorToastService } from '../../core/ui/toast/error-toast.service';
 
 @Component({
   selector: 'app-chats-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, ReactiveFormsModule],
+  imports: [CommonModule, RouterLink, ReactiveFormsModule, PresenceStatusPipe],
   templateUrl: './chats-page.component.html',
   styleUrl: './chats-page.component.scss'
 })
@@ -56,7 +57,9 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
   members: string[] = [];
   membersLoading = false;
   private readonly userCache = new Map<string, { username: string; displayName?: string }>();
-  private readonly dmNameOverrides = new Map<string, string>();
+  private readonly serverCache = new Map<string, Server>();
+  userLabels: Record<string, string> = {};
+  dmNameOverrides: Record<string, string> = {};
 
   messages: Message[] = [];
   messagesLoading = false;
@@ -80,6 +83,10 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
   selectedMember: UserSearchResult | null = null;
   manageOpen = false;
   sendPending = false;
+  searchDialogOpen = false;
+  searchPending = false;
+  searchResults: MessageSearchResult[] = [];
+  searchError = '';
   private routeSub?: Subscription;
 
   readonly createForm = this.fb.nonNullable.group({
@@ -93,6 +100,13 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
   });
   readonly sendForm = this.fb.nonNullable.group({
     content: ['', Validators.required]
+  });
+  readonly searchForm = this.fb.nonNullable.group({
+    query: ['', Validators.required],
+    channelId: [''],
+    senderId: [''],
+    dateFrom: [''],
+    dateTo: ['']
   });
 
   ngOnInit(): void {
@@ -109,6 +123,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
           this.loadMessages(this.selectedServerId, 0, false);
         } else {
           this.members = [];
+          this.presenceStore.setTracked([]);
           this.resetMessages();
         }
         this.resetMemberState();
@@ -159,6 +174,56 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
     if (!this.createOpen) {
       this.resetCreateForm();
     }
+  }
+
+  openSearchDialog() {
+    const channelId = this.selectedServerId;
+    this.searchForm.reset({
+      query: '',
+      channelId: channelId ?? '',
+      senderId: '',
+      dateFrom: '',
+      dateTo: ''
+    });
+    this.searchResults = [];
+    this.searchError = '';
+    this.searchDialogOpen = true;
+  }
+
+  closeSearchDialog() {
+    this.searchDialogOpen = false;
+  }
+
+  submitSearch() {
+    if (this.searchPending || this.searchForm.invalid) {
+      return;
+    }
+    const { query, channelId, senderId, dateFrom, dateTo } = this.searchForm.getRawValue();
+    const request = {
+      query: query.trim(),
+      channelId: channelId?.trim() || undefined,
+      senderId: senderId?.trim() || undefined,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+      page: 0,
+      size: 50
+    };
+    this.searchPending = true;
+    this.searchError = '';
+    this.searchApi
+      .searchMessages(request)
+      .pipe(
+        tap((page) => {
+          this.searchResults = page.content;
+        }),
+        catchError((err) => {
+          this.searchError = err?.message || err?.error || 'Search failed';
+          this.searchResults = [];
+          return of({ content: [] } as any);
+        }),
+        finalize(() => (this.searchPending = false))
+      )
+      .subscribe();
   }
 
   setType(type: ServerType) {
@@ -508,7 +573,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
       .subscribe((members) => {
         this.members = members;
         this.fetchUsers(members);
-        this.presenceStore.track(members);
+        this.presenceStore.setTracked(members);
         const server = this.selectedServer;
         if (server && server.type === ServerType.DM) {
           this.updateDmName(server.id, members);
@@ -575,7 +640,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
 
   getServerName(server: Server): string {
     if (server.type === ServerType.DM) {
-      return this.dmNameOverrides.get(server.id) || server.name;
+      return this.dmNameOverrides[server.id] || server.name;
     }
     return server.name;
   }
@@ -592,6 +657,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
     users.forEach((user) => {
       if (user?.id) {
         this.userCache.set(user.id, { username: user.username, displayName: (user as any).displayName });
+        this.userLabels[user.id] = (user as any).displayName || user.username;
       }
     });
   }
@@ -607,14 +673,6 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
         }
       });
     });
-  }
-
-  userLabel(userId: string): string {
-    const cached = this.userCache.get(userId);
-    if (cached) {
-      return cached.displayName || cached.username || userId;
-    }
-    return userId;
   }
 
   private filterOutCurrentUser<T extends { id: string }>(users: T[]): T[] {
@@ -647,10 +705,10 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
       tap((user) => {
         this.cacheUsers([user]);
         const label = user?.username || partnerId;
-        this.dmNameOverrides.set(serverId, label);
+        this.dmNameOverrides[serverId] = label;
       }),
       catchError(() => {
-        this.dmNameOverrides.set(serverId, partnerId);
+        this.dmNameOverrides[serverId] = partnerId;
         return EMPTY;
       })
     ).subscribe();

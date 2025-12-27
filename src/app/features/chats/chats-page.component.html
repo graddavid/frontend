@@ -7,7 +7,7 @@
     </div>
     <div class="header-actions">
       <button type="button" class="primary" (click)="toggleCreatePopover()">New chat</button>
-      <a routerLink="/search" class="ghost">Search messages</a>
+      <button type="button" class="ghost" (click)="openSearchDialog()">Search messages</button>
     </div>
     <div class="popover-backdrop" *ngIf="createOpen" (click)="toggleCreatePopover()"></div>
     <div class="popover" *ngIf="createOpen" (click)="$event.stopPropagation()">
@@ -101,7 +101,7 @@
   </header>
 
   <div class="layout">
-    <div class="lists">
+     <div class="lists">
       <div class="panel">
         <header>
           <div>
@@ -122,7 +122,7 @@
                 (click)="openServer(server.id)"
                 [class.active]="selectedServerId === server.id"
               >
-                <div class="name">{{ getServerName(server) }}</div>
+                <div class="name">{{ dmNameOverrides[server.id] || server.name }}</div>
                 <div class="meta">Direct message</div>
               </li>
             </ul>
@@ -166,7 +166,7 @@
         <div class="chat-header">
           <div>
             <p class="eyebrow">{{ server.type === 'DM' ? 'Direct message' : 'Group chat' }}</p>
-            <h2>{{ getServerName(server) }}</h2>
+            <h2>{{ dmNameOverrides[server.id] || server.name }}</h2>
             <p class="meta" *ngIf="server.profile?.bio">{{ server.profile?.bio }}</p>
           </div>
           <span class="tag">{{ server.type }}</span>
@@ -269,8 +269,8 @@
             <div class="bubble">
               <div class="meta-line">
                 <span class="sender">
-                  <span class="presence" [class.online]="presenceStore.presence(message.senderId) === 'ONLINE'" [class.offline]="presenceStore.presence(message.senderId) === 'OFFLINE'"></span>
-                  {{ userLabel(message.senderId) }}&nbsp;
+                  <span class="presence" [class.online]="(message.senderId | presenceStatus) === 'ONLINE'" [class.offline]="(message.senderId | presenceStatus) === 'OFFLINE'"></span>
+                  {{ userLabels[message.senderId] || message.senderId }}&nbsp;
                 </span>
                 <span class="time">{{ message.dateSent | date:'short' }}</span>
               </div>
