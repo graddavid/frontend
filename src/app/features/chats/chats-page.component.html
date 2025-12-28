@@ -169,21 +169,38 @@
             <h2>{{ dmNameOverrides[server.id] || server.name }}</h2>
             <p class="meta" *ngIf="server.profile?.bio">{{ server.profile?.bio }}</p>
           </div>
-          <span class="tag">{{ server.type }}</span>
+          <div class="header-actions-small">
+            <span class="tag">{{ server.type }}</span>
+            <button
+              *ngIf="server.type === ServerType.GROUP"
+              type="button"
+              class="ghost small"
+              (click)="toggleManage()"
+            >
+              Members
+            </button>
+          </div>
         </div>
 
-        <div class="manage" *ngIf="server.type === ServerType.GROUP">
+        <div
+          class="manage-backdrop"
+          *ngIf="server.type === ServerType.GROUP && manageOpen"
+          (click)="toggleManage()"
+        ></div>
+        <div
+          class="manage-popover"
+          *ngIf="server.type === ServerType.GROUP && manageOpen"
+          (click)="$event.stopPropagation()"
+        >
           <div class="manage-header">
             <div>
               <p class="eyebrow">Server controls</p>
               <h3>Members</h3>
             </div>
-            <button type="button" class="ghost" (click)="toggleManage()">
-              {{ manageOpen ? 'Hide' : 'Manage' }}
-            </button>
+            <button type="button" class="ghost small" (click)="toggleManage()">Close</button>
           </div>
 
-          <div class="manage-popover" *ngIf="manageOpen">
+          <div class="manage-body">
             <form [formGroup]="memberForm" (ngSubmit)="addMember(server.id)" class="member-form">
               <label>
                 <span>Add member</span>
@@ -292,27 +309,32 @@
         </div>
 
         <form class="composer" [formGroup]="sendForm" (ngSubmit)="sendMessage(server.id)">
-          <div class="attachments-row">
+          <div class="selected-files" *ngIf="selectedFiles.length">
+            <span class="chip" *ngFor="let file of selectedFiles; let i = index">
+              {{ file.name }}
+              <button type="button" class="chip-remove" (click)="removeFile(i)">✕</button>
+            </span>
+          </div>
+          <div class="input-row">
             <input
               type="file"
               multiple
               #fileInput
               (change)="onFilesSelected($event)"
               [disabled]="sendPending"
+              class="file-input"
             />
-            <div class="selected-files" *ngIf="selectedFiles.length">
-              <span class="chip" *ngFor="let file of selectedFiles">{{ file.name }}</span>
-            </div>
+            <input
+              type="text"
+              formControlName="content"
+              placeholder="Message {{ getServerName(server) }}"
+              [disabled]="sendPending"
+              class="message-input"
+            />
+            <button type="submit" class="primary send-square" [disabled]="sendPending">
+              {{ sendPending ? '…' : '➤' }}
+            </button>
           </div>
-          <input
-            type="text"
-            formControlName="content"
-            placeholder="Message {{ getServerName(server) }}"
-            [disabled]="sendPending"
-          />
-          <button type="submit" class="primary" [disabled]="sendPending">
-            {{ sendPending ? 'Sending...' : 'Send' }}
-          </button>
         </form>
       </ng-container>
 

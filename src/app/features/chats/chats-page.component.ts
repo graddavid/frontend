@@ -506,7 +506,38 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
 
   onFilesSelected(event: Event) {
     const input = event.target as HTMLInputElement;
-    this.selectedFiles = input.files ? Array.from(input.files) : [];
+    const incoming = input.files ? Array.from(input.files) : [];
+    if (!incoming.length) {
+      return;
+    }
+    const merged = [...this.selectedFiles, ...incoming];
+    // dedupe by name + size + lastModified to avoid double-adding the same file
+    const seen = new Set<string>();
+    this.selectedFiles = merged.filter((file) => {
+      const key = `${file.name}-${file.size}-${file.lastModified}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    // allow selecting the same file again after change
+    if (this.fileInput?.nativeElement) {
+      this.fileInput.nativeElement.value = '';
+    }
+  }
+
+  removeFile(index: number) {
+    if (index < 0 || index >= this.selectedFiles.length) {
+      return;
+    }
+    this.selectedFiles = this.selectedFiles.filter((_, i) => i !== index);
+    if (this.fileInput?.nativeElement) {
+      const dataTransfer = new DataTransfer();
+      this.selectedFiles.forEach((file) => dataTransfer.items.add(file));
+      this.fileInput.nativeElement.files = dataTransfer.files;
+      if (!this.selectedFiles.length) {
+        this.fileInput.nativeElement.value = '';
+      }
+    }
   }
 
   private setupUserSearch() {
@@ -677,6 +708,10 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
         ? server.type
         : (String(server.type || '').toUpperCase() as ServerType) || ServerType.GROUP;
     return { ...server, type: normalizedType };
+  }
+
+  userLabel(userId: string): string {
+    return this.userLabels[userId] || userId;
   }
 
   getServerName(server: Server): string {
