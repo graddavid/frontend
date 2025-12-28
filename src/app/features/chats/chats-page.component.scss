@@ -409,13 +409,24 @@ textarea {
 
 .input-row {
   display: grid;
-  grid-template-columns: 1fr 3fr auto;
+  grid-template-columns: 125px 3fr auto;
   gap: theme.$space-2;
   align-items: center;
 }
 
 .file-input {
   width: 100%;
+  font-size: 0; /* hide filename text */
+}
+
+.hide-file-label::-webkit-file-upload-button {
+  font-size: 14px;
+  visibility: visible;
+}
+
+.hide-file-label::file-selector-button {
+  font-size: 14px;
+  visibility: visible;
 }
 
 .selected-files {
