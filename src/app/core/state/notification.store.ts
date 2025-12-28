@@ -1,11 +1,12 @@
 import { Injectable, OnDestroy, computed, inject, signal } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
-import { EMPTY, Subscription, catchError, filter, forkJoin, of, tap } from 'rxjs';
+import { EMPTY, Subscription, Subject, catchError, filter, forkJoin, of, tap } from 'rxjs';
 
 import { NotificationApi } from '../../../api/notifications/notification.api';
 import {
   NotificationResponse,
-  NotificationStatus
+  NotificationStatus,
+  NotificationType
 } from '../../../api/notifications/notification.dto';
 import { UserApi } from '../../../api/users/user.api';
 import { UserDto } from '../../../api/users/user.dto';
@@ -31,6 +32,8 @@ export class NotificationStore implements OnDestroy {
   readonly unread = computed(() =>
     this.notifications().filter((n) => n.status === NotificationStatus.UNREAD)
   );
+  private readonly messageNotifications = new Subject<NotificationResponse>();
+  readonly messageNotifications$ = this.messageNotifications.asObservable();
 
   private client?: Client;
   private reconnecting = false;
@@ -165,6 +168,9 @@ export class NotificationStore implements OnDestroy {
         return;
       }
       this.upsert([payload]);
+      if (payload.type === NotificationType.MESSAGE_RECEIVED) {
+        this.messageNotifications.next(payload);
+      }
       this.showToastWithDetails(payload);
       this.autoMarkRead(payload);
     } catch (err) {

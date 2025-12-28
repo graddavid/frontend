@@ -5,6 +5,7 @@ import {
   debounceTime,
   distinctUntilChanged,
   finalize,
+  filter,
   of,
   switchMap,
   tap
@@ -24,8 +25,10 @@ import { MessageApi } from '../../../api/messages/message.api';
 import { Message, MessageDto, MediaAttachment } from '../../../api/messages/message.dto';
 import { UserApi } from '../../../api/users/user.api';
 import { UserDto } from '../../../api/users/user.dto';
+import { NotificationResponse } from '../../../api/notifications/notification.dto';
 import { AuthStore } from '../../core/state/auth.store';
 import { PresenceStore } from '../../core/state/presence.store';
+import { NotificationStore } from '../../core/state/notification.store';
 import { PresenceStatusPipe } from '../../core/state/presence-status.pipe';
 import { ToastService } from '../../core/ui/toast/toast.service';
 import { ErrorToastService } from '../../core/ui/toast/error-toast.service';
@@ -47,6 +50,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
   private readonly userApi = inject(UserApi);
   private readonly mediaApi = inject(MediaApi);
   private readonly authStore = inject(AuthStore);
+  private readonly notificationStore = inject(NotificationStore);
   private readonly presenceStore = inject(PresenceStore);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -68,6 +72,10 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
   messagesLastPage = false;
   messagesPage = 0;
   readonly pageSize = 20;
+  private readonly messageCache = new Map<
+    string,
+    { messages: Message[]; page: number; lastPage: boolean; loading?: boolean }
+  >();
 
   userResults: UserSearchResult[] = [];
   memberSearchResults: UserSearchResult[] = [];
@@ -90,6 +98,8 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
   searchResults: MessageSearchResult[] = [];
   searchError = '';
   private routeSub?: Subscription;
+  private messageNotificationSub?: Subscription;
+  private readonly pushedMessageIds = new Set<string>();
   selectedFiles: File[] = [];
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
 
@@ -123,8 +133,10 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
         this.selectedServerId = params.get('serverId');
         if (this.selectedServerId) {
           this.loadMembers(this.selectedServerId);
-          this.resetMessages();
-          this.loadMessages(this.selectedServerId, 0, false);
+          const hasCache = this.syncActiveMessagesFromCache(this.selectedServerId);
+          if (!hasCache) {
+            this.loadMessages(this.selectedServerId, 0, false);
+          }
         } else {
           this.members = [];
           this.presenceStore.setTracked([]);
@@ -132,6 +144,12 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
         }
         this.resetMemberState();
       });
+    this.messageNotificationSub = this.notificationStore.messageNotifications$
+      .pipe(
+        filter((n) => !!n?.messageId && !!n?.channelId),
+        tap((notification) => this.handleIncomingMessageNotification(notification))
+      )
+      .subscribe();
   }
 
   downloadAttachment(media: MediaAttachment) {
@@ -158,6 +176,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.routeSub?.unsubscribe();
+    this.messageNotificationSub?.unsubscribe();
   }
 
   openServer(serverId: string) {
@@ -493,6 +512,11 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
           if (this.fileInput?.nativeElement) {
             this.fileInput.nativeElement.value = '';
           }
+          this.messageCache.set(serverId, {
+            messages: this.messages,
+            page: this.messagesPage,
+            lastPage: this.messagesLastPage
+          });
           this.fetchUsers([message.senderId]);
         }),
         catchError((err) => {
@@ -628,6 +652,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
         this.servers = servers.map((server) => this.normalizeServer(server));
         servers.forEach((s) => this.serverCache.set(s.id, s));
         this.hydrateDmNames(this.servers);
+        this.preloadMessagesForServers(this.servers);
       });
   }
 
@@ -653,8 +678,29 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
       });
   }
 
-  private loadMessages(serverId: string, page: number, append: boolean) {
-    this.messagesLoading = true;
+  private loadMessages(
+    serverId: string,
+    page: number,
+    append: boolean,
+    options?: { showLoading?: boolean }
+  ) {
+    const cached = this.messageCache.get(serverId);
+    if (cached?.loading) {
+      return;
+    }
+    if (!append && page === 0 && cached?.messages.length) {
+      if (this.selectedServerId === serverId) {
+        this.syncActiveMessagesFromCache(serverId);
+      }
+      return;
+    }
+
+    const showLoading = options?.showLoading ?? this.selectedServerId === serverId;
+    if (showLoading && this.selectedServerId === serverId) {
+      this.messagesLoading = true;
+    }
+
+    this.messageCache.set(serverId, { ...(cached ?? { messages: [], page: 0, lastPage: false }), loading: true });
     this.messageApi
       .getMessagesForChannel(serverId, page, this.pageSize)
       .pipe(
@@ -662,16 +708,29 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
           this.errorToast.toastError(err, 'Could not load messages');
           return of({ content: [], last: true, number: page });
         }),
-        finalize(() => (this.messagesLoading = false))
+        finalize(() => {
+          const entry = this.messageCache.get(serverId);
+          if (entry) {
+            this.messageCache.set(serverId, { ...entry, loading: false });
+          }
+          if (showLoading && this.selectedServerId === serverId) {
+            this.messagesLoading = false;
+          }
+        })
       )
       .subscribe((result) => {
-        const merged = append ? [...this.messages, ...result.content] : result.content;
-        this.messages = merged;
+        const previous = this.messageCache.get(serverId)?.messages ?? [];
+        const merged = append ? [...previous, ...result.content] : result.content;
+        const last = result.last ?? result.content.length < this.pageSize;
+        this.messageCache.set(serverId, { messages: merged, page, lastPage: last });
+        if (this.selectedServerId === serverId) {
+          this.messages = merged;
+          this.messagesPage = page;
+          this.messagesLastPage = last;
+        }
         const senderIds = merged.map((m) => m.senderId);
         this.fetchUsers(senderIds);
         this.presenceStore.track(senderIds);
-        this.messagesPage = page;
-        this.messagesLastPage = result.last ?? result.content.length < this.pageSize;
       });
   }
 
@@ -802,6 +861,51 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
     ).subscribe();
   }
 
+  private handleIncomingMessageNotification(notification: NotificationResponse) {
+    const { messageId, channelId } = notification;
+    if (!messageId || !channelId) {
+      return;
+    }
+    if (this.pushedMessageIds.has(messageId)) {
+      return;
+    }
+    this.pushedMessageIds.add(messageId);
+    this.messageApi
+      .getMessageById(messageId)
+      .pipe(
+        tap((message) => {
+          const cache = this.messageCache.get(channelId) ?? {
+            messages: [],
+            page: 0,
+            lastPage: false
+          };
+          if (cache.messages.some((m) => m.id === message.id)) {
+            return;
+          }
+          const updatedMessages = [message, ...cache.messages];
+          const updatedEntry = {
+            messages: updatedMessages,
+            page: cache.page,
+            lastPage: cache.lastPage
+          };
+          this.messageCache.set(channelId, updatedEntry);
+          if (this.selectedServerId === channelId) {
+            this.messages = updatedMessages;
+            this.messagesPage = updatedEntry.page;
+            this.messagesLastPage = updatedEntry.lastPage;
+          }
+          this.fetchUsers([message.senderId]);
+          this.presenceStore.track([message.senderId]);
+        }),
+        catchError((err) => {
+          this.errorToast.toastError(err, 'Could not load new message');
+          return EMPTY;
+        }),
+        finalize(() => this.pushedMessageIds.delete(messageId))
+      )
+      .subscribe();
+  }
+
   fetchServer(id: string) {
     if (!id || this.serverCache.has(id)) {
       return;
@@ -815,5 +919,27 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
       }),
       catchError(() => of(null))
     ).subscribe();
+  }
+
+  private preloadMessagesForServers(servers: Server[]) {
+    servers
+      .filter((server) => !!server.id)
+      .forEach((server) => this.loadMessages(server.id, 0, false, { showLoading: false }));
+  }
+
+  private syncActiveMessagesFromCache(serverId: string): boolean {
+    const cached = this.messageCache.get(serverId);
+    if (!cached) {
+      this.resetMessages();
+      return false;
+    }
+    this.messages = cached.messages;
+    this.messagesPage = cached.page;
+    this.messagesLastPage = cached.lastPage;
+    this.messagesLoading = false;
+    const senderIds = cached.messages.map((m) => m.senderId);
+    this.fetchUsers(senderIds);
+    this.presenceStore.track(senderIds);
+    return true;
   }
 }
