@@ -98,6 +98,9 @@ export class NotificationStore implements OnDestroy {
     if (!user?.id) {
       return;
     }
+    if(user?.id !== this.notifications().find((notification) => notification.id === id)?.recipientId) {
+      return;
+    }
     this.api.markAsRead(id, user.id).subscribe({
       next: () => {
         this.notifications.update((list) =>
@@ -208,6 +211,9 @@ export class NotificationStore implements OnDestroy {
   private autoMarkRead(notification: NotificationResponse) {
     const user = this.authStore.snapshot;
     if (!user?.id) {
+      return;
+    }
+    if(user?.id !== notification?.recipientId) {
       return;
     }
     this.api.markAsRead(notification.id, user.id).subscribe({
