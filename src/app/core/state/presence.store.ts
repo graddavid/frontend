@@ -81,6 +81,7 @@ export class PresenceStore implements OnDestroy {
         catchError(() => of(null))
       )
       .subscribe();
+      this.sub.unsubscribe();
   }
 
   presence(id: string): PresenceStatus | 'UNKNOWN' {
