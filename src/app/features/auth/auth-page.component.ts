@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { EMPTY, catchError, finalize, tap } from 'rxjs';
+import { EMPTY, catchError, finalize, forkJoin, map, of, tap } from 'rxjs';
 
 import { UserApi } from '../../../api/users/user.api';
 import { AuthStore } from '../../core/state/auth.store';
@@ -10,6 +10,7 @@ import { LoginRequest, RegisterRequest } from '../../../api/users/user.dto';
 import { ToastService } from '../../core/ui/toast/toast.service';
 import { ErrorToastService } from '../../core/ui/toast/error-toast.service';
 import { PresenceStore } from '../../core/state/presence.store';
+import { HealthApi } from '../../../api/health/health.api';
 
 @Component({
   selector: 'app-auth-page',
@@ -27,6 +28,7 @@ export class AuthPageComponent {
   private readonly toast = inject(ToastService);
   private readonly errorToast = inject(ErrorToastService);
   private readonly presenceStore = inject(PresenceStore);
+  private readonly healthApi = inject(HealthApi);
 
   readonly user$ = this.authStore.user$;
 
@@ -71,6 +73,7 @@ export class AuthPageComponent {
       tap((user) => {
         this.authStore.setUser(user);
         this.presenceStore.setOnline(user.id);
+        this.runServiceHealthChecks();
       }),
       tap(() => this.router.navigate(['/chats'])),
       catchError((err) => {
@@ -111,5 +114,32 @@ export class AuthPageComponent {
       finalize(() => (this.registerPending = false))
     )
     .subscribe();
+  }
+
+  private runServiceHealthChecks() {
+    const checks = [
+      { label: 'User service', obs: this.healthApi.user() },
+      { label: 'Server service', obs: this.healthApi.server() },
+      { label: 'Membership service', obs: this.healthApi.membership() },
+      { label: 'Message service', obs: this.healthApi.message() },
+      { label: 'Presence service', obs: this.healthApi.presence() },
+      { label: 'Notification service', obs: this.healthApi.notification() },
+      { label: 'Encryption service', obs: this.healthApi.encryption() },
+      { label: 'Media service', obs: this.healthApi.media() },
+      { label: 'Search service', obs: this.healthApi.search() }
+    ];
+
+    forkJoin(
+      checks.map(({ label, obs }) =>
+        obs.pipe(
+          tap(() => this.toast.success(`${label} healthy`)),
+          map(() => ({ label, ok: true })),
+          catchError((err) => {
+            this.errorToast.toastError(err, `${label} health check failed`);
+            return of({ label, ok: false });
+          })
+        )
+      )
+    ).subscribe();
   }
 }

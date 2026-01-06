@@ -13,7 +13,21 @@ export type ApiServiceKey =
   | 'media'
   | 'search';
 
-const defaultBaseUrls: Record<ApiServiceKey, string> = {
+const defaultBaseRoots: Record<ApiServiceKey, string> = {
+  user: '',
+  server: '',
+  membership: '',
+  message: '',
+  presence: '',
+  notification: '',
+  internalNotification: '',
+  encryption: '',
+  password: '',
+  media: '',
+  search: ''
+};
+
+const servicePaths: Record<ApiServiceKey, string> = {
   user: '/api/users',
   server: '/api/servers',
   membership: '/api/memberships',
@@ -31,8 +45,11 @@ const envBaseUrls =
   (environment as { apiBaseUrls?: Partial<Record<ApiServiceKey, string>> }).apiBaseUrls || {};
 
 export const apiBaseUrls: Record<ApiServiceKey, string> = {
-  ...defaultBaseUrls,
+  ...defaultBaseRoots,
   ...envBaseUrls
 };
 
-export const apiUrl = (key: ApiServiceKey, path = '') => `${apiBaseUrls[key]}${path}`;
+export const apiUrl = (key: ApiServiceKey, path = '') =>
+  `${apiBaseUrls[key]}${servicePaths[key]}${path}`;
+
+export const apiRootUrl = (key: ApiServiceKey, path = '') => `${apiBaseUrls[key]}${path}`;

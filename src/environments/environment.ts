@@ -7,17 +7,17 @@ export const environment = {
    */
   useMocks: true,
   apiBaseUrls: {
-    user: 'http://localhost:8032/api/users',
-    server: 'http://localhost:8031/api/servers',
-    membership: 'http://localhost:8031/api/memberships',
-    message: 'http://localhost:8080/message',
-    presence: 'http://localhost:8081/presence',
-    notification: 'http://localhost:8085/notifications',
-    internalNotification: 'http://localhost:8085/internal/notifications',
-    encryption: 'http://localhost:8082/encryption',
-    password: 'http://localhost:8082/password',
-    media: 'http://localhost:8083/media',
-    search: 'http://localhost:8084/search'
+    user: 'http://localhost:8032',
+    server: 'http://localhost:8031',
+    membership: 'http://localhost:8031',
+    message: 'http://localhost:8080',
+    presence: 'http://localhost:8081',
+    notification: 'http://localhost:8085',
+    internalNotification: 'http://localhost:8085',
+    encryption: 'http://localhost:8082',
+    password: 'http://localhost:8082',
+    media: 'http://localhost:8083',
+    search: 'http://localhost:8084'
   },
   notificationWs: 'http://localhost:8085/ws'
 };
