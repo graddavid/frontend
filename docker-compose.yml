@@ -1,0 +1,27 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: DockerFile
+      args:
+        USER_API: http://user-service:8032
+        SERVER_API: http://server-service:8031
+        MEMBERSHIP_API: http://server-service:8031
+        MESSAGE_API: http://message:8080
+        PRESENCE_API: http://presence:8081
+        NOTIFICATION_API: http://notification:8085
+        INTERNAL_NOTIFICATION_API: http://notification:8085
+        ENCRYPTION_API: http://encryption:8082
+        PASSWORD_API: http://encryption:8082
+        MEDIA_API: http://media:8083
+        SEARCH_API: http://search:8084
+        NOTIFICATION_WS: http://notification:8085/ws
+    image: prpo-frontend:latest
+    ports:
+      - "4200:80"
+    networks:
+      - chat-net
+
+networks:
+  chat-net:
+    external: true
