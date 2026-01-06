@@ -23,7 +23,7 @@ jobs:
         run: npm ci
 
       - name: Build Angular
-        run: ng build
+        run: npm run build
 
       - name: Start Angular app
         run: npm start &
