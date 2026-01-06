@@ -22,9 +22,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Reset project (optional)
-        run: ng reset
-
       - name: Build Angular
         run: ng build
 
