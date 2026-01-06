@@ -1,0 +1,32 @@
+name: Angular CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  angular:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Reset project (optional)
+        run: npm run reset
+
+      - name: Build Angular
+        run: npm run build
+
+      - name: Start Angular app
+        run: npm start &
