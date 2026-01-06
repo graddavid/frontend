@@ -5,7 +5,8 @@ import { PresenceStatus } from '../../../api/presence/presence.dto';
 
 @Pipe({
   name: 'presenceStatus',
-  standalone: true
+  standalone: true,
+  pure: false
 })
 export class PresenceStatusPipe implements PipeTransform {
   private readonly presenceStore = inject(PresenceStore);

@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthStore } from '@app/core/state/auth.store';
+import { PresenceStore } from '@app/core/state/presence.store';
 
 
 type NavLink = {
@@ -20,6 +21,7 @@ type NavLink = {
 export class ShellComponent {
   private readonly authStore = inject(AuthStore);
   private readonly router = inject(Router);
+  private readonly presenceStore = inject(PresenceStore);
 
   readonly user$ = this.authStore.user$;
   readonly navLinks: NavLink[] = [
@@ -27,6 +29,7 @@ export class ShellComponent {
   ];
 
   logout() {
+    this.presenceStore.setOffline();
     this.authStore.clear();
     this.router.navigate(['/auth']);
   }

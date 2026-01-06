@@ -8,10 +8,11 @@ import {
   filter,
   of,
   switchMap,
-  tap
+  tap,
+  interval
 } from 'rxjs';
 
-import { Component, OnDestroy, OnInit, ViewChild, ElementRef, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild, ElementRef, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -100,6 +101,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
   private routeSub?: Subscription;
   private messageNotificationSub?: Subscription;
   private readonly pushedMessageIds = new Set<string>();
+  private readonly cdRef = inject(ChangeDetectorRef);
   selectedFiles: File[] = [];
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
 
@@ -127,6 +129,7 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
     this.loadServers();
     this.setupUserSearch();
     this.setupMemberSearch();
+    this.setOnlineInterval();
     this.routeSub = this.route.paramMap
       .pipe(distinctUntilChanged())
       .subscribe((params) => {
@@ -150,6 +153,14 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
         tap((notification) => this.handleIncomingMessageNotification(notification))
       )
       .subscribe();
+  }
+
+  setOnlineInterval() {
+    interval(1000 * 30).pipe(
+      switchMap(() => this.authStore.user$),
+      tap((user) => this.presenceStore.setOnline(user?.id!))
+    ).subscribe();
+    interval(1000).pipe(tap(() => this.cdRef.detectChanges())).subscribe();
   }
 
   downloadAttachment(media: MediaAttachment) {
