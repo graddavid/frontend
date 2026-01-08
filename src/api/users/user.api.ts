@@ -8,12 +8,15 @@ import {
   LoginRequest,
   RegisterRequest,
   UserDto,
-  UserSettings
+  UserSettings,
+  WalletLoginRequest,
+  WalletLoginResponse,
+  WalletRegisterRequest
 } from './user.dto';
 
 @Injectable({ providedIn: 'root' })
 export class UserApi {
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   register(payload: RegisterRequest): Observable<UserDto> {
     return this.http.post<UserDto>(apiUrl('user', '/register'), payload);
@@ -41,5 +44,13 @@ export class UserApi {
 
   hello(): Observable<string> {
     return this.http.get<string>(apiUrl('user', '/hello'), { responseType: 'text' as 'json' });
+  }
+
+  loginWithWallet(payload: WalletLoginRequest): Observable<WalletLoginResponse> {
+    return this.http.post<WalletLoginResponse>(apiUrl('user', '/login/wallet'), payload);
+  }
+
+  registerWithWallet(payload: WalletRegisterRequest): Observable<UserDto> {
+    return this.http.post<UserDto>(apiUrl('user', '/register/wallet'), payload);
   }
 }
