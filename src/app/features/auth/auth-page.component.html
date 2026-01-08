@@ -50,6 +50,38 @@
           </button>
         </form>
       </div>
+      <div class="divider">
+        <span>or</span>
+      </div>
+
+      <div class="wallet-section">
+        <div class="card wallet-card">
+          <h2>🦊 Metamask</h2>
+          <p class="hint">Connect your Metamask wallet to sign in.</p>
+
+          <ng-container *ngIf="!walletNeedsUsername; else usernameForm">
+            <button type="button" class="metamask-btn" (click)="connectWallet()" [disabled]="walletPending">
+              {{ walletPending ? 'Connecting...' : 'Connect with Metamask' }}
+            </button>
+          </ng-container>
+
+          <ng-template #usernameForm>
+            <form [formGroup]="walletUsernameForm" (ngSubmit)="submitWalletRegister()">
+              <p class="success">Wallet connected! Choose a username to continue.</p>
+              <label>
+                <span>Username</span>
+                <input type="text" formControlName="username" placeholder="Choose a username" />
+              </label>
+              <div class="wallet-actions">
+                <button type="button" class="secondary" (click)="cancelWalletRegister()">Cancel</button>
+                <button type="submit" [disabled]="walletPending">
+                  {{ walletPending ? 'Creating...' : 'Create account' }}
+                </button>
+              </div>
+            </form>
+          </ng-template>
+        </div>
+      </div>
     </ng-template>
 
     <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>

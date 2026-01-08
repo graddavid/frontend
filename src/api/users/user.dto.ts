@@ -32,3 +32,21 @@ export interface FriendshipRequest {
   firstUserId: string;
   secondUserId: string;
 }
+
+export interface WalletLoginRequest {
+  walletAddress: string;
+  signature: string;
+  message: string;
+}
+
+export interface WalletRegisterRequest {
+  walletAddress: string;
+  signature: string;
+  message: string;
+  username: string;
+}
+
+export interface WalletLoginResponse {
+  needsRegistration: boolean;
+  user?: UserDto;
+}

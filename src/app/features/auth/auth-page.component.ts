@@ -6,11 +6,20 @@ import { EMPTY, catchError, finalize, forkJoin, map, of, tap } from 'rxjs';
 
 import { UserApi } from '../../../api/users/user.api';
 import { AuthStore } from '../../core/state/auth.store';
-import { LoginRequest, RegisterRequest } from '../../../api/users/user.dto';
+import { LoginRequest, RegisterRequest, WalletLoginRequest, WalletRegisterRequest } from '../../../api/users/user.dto';
 import { ToastService } from '../../core/ui/toast/toast.service';
 import { ErrorToastService } from '../../core/ui/toast/error-toast.service';
 import { PresenceStore } from '../../core/state/presence.store';
 import { HealthApi } from '../../../api/health/health.api';
+
+declare global {
+  interface Window {
+    ethereum?: {
+      request: (args: { method: string; params?: any[] }) => Promise<any>;
+      isMetaMask?: boolean;
+    };
+  }
+}
 
 @Component({
   selector: 'app-auth-page',
@@ -43,9 +52,19 @@ export class AuthPageComponent {
     password: ['', [Validators.required, Validators.minLength(3)]]
   });
 
+  readonly walletUsernameForm = this.fb.nonNullable.group({
+    username: ['', [Validators.required, Validators.minLength(2)]]
+  });
+
   loginPending = false;
   registerPending = false;
+  walletPending = false;
+  walletNeedsUsername = false;
   errorMessage = '';
+
+  private walletAddress = '';
+  private walletSignature = '';
+  private walletMessage = '';
 
   logout() {
     this.authStore.clear();
@@ -82,7 +101,7 @@ export class AuthPageComponent {
       }),
       finalize(() => (this.loginPending = false))
     )
-    .subscribe();
+      .subscribe();
   }
 
   submitRegister() {
@@ -113,7 +132,109 @@ export class AuthPageComponent {
       }),
       finalize(() => (this.registerPending = false))
     )
-    .subscribe();
+      .subscribe();
+  }
+
+  // wallet auth
+
+  async connectWallet() {
+    if (!window.ethereum) {
+      this.errorMessage = 'Metamask is not installed. Install Metamask to continue.';
+      this.toast.error(this.errorMessage);
+      return;
+    }
+
+    this.walletPending = true;
+    this.errorMessage = '';
+
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      this.walletAddress = accounts[0];
+
+      const nonce = Date.now();
+      this.walletMessage = `Sign in to Adaran\nNonce: ${nonce}`;
+
+      this.walletSignature = await window.ethereum.request({
+        method: 'personal_sign',
+        params: [this.walletMessage, this.walletAddress]
+      });
+      const payload: WalletLoginRequest = {
+        walletAddress: this.walletAddress,
+        signature: this.walletSignature,
+        message: this.walletMessage
+      };
+
+      this.userApi.loginWithWallet(payload).pipe(
+        tap((response) => {
+          if (response.needsRegistration) {
+            this.walletNeedsUsername = true;
+            this.toast.info('Wallet connected! Choose a username.');
+          } else if (response.user) {
+            this.authStore.setUser(response.user);
+            this.presenceStore.setOnline(response.user.id);
+            this.toast.success('Welcome back!');
+            this.router.navigate(['/chats']);
+          }
+        }),
+        catchError((err) => {
+          this.errorMessage = this.errorToast.toastError(err, 'Wallet login failed');
+          return EMPTY;
+        }),
+        finalize(() => (this.walletPending = false))
+      ).subscribe();
+
+    } catch (error: any) {
+      this.walletPending = false;
+      if (error.code === 4001) {
+        this.errorMessage = 'Connection cancelled by user.';
+      } else {
+        this.errorMessage = 'Failed to connect wallet: ' + (error.message || 'Unknown error');
+      }
+      this.toast.error(this.errorMessage);
+    }
+  }
+
+  submitWalletRegister() {
+    if (this.walletPending) {
+      return;
+    }
+    if (this.walletUsernameForm.invalid) {
+      this.errorMessage = 'Username is required (min 2 chars).';
+      this.toast.error(this.errorMessage);
+      return;
+    }
+
+    this.walletPending = true;
+    this.errorMessage = '';
+
+    const payload: WalletRegisterRequest = {
+      walletAddress: this.walletAddress,
+      signature: this.walletSignature,
+      message: this.walletMessage,
+      username: this.walletUsernameForm.getRawValue().username
+    };
+
+    this.userApi.registerWithWallet(payload).pipe(
+      tap((user) => {
+        this.authStore.setUser(user);
+        this.presenceStore.setOnline(user.id);
+        this.toast.success('Account created!');
+        this.router.navigate(['/chats']);
+      }),
+      catchError((err) => {
+        this.errorMessage = this.errorToast.toastError(err, 'Registration failed');
+        return EMPTY;
+      }),
+      finalize(() => (this.walletPending = false))
+    ).subscribe();
+  }
+
+  cancelWalletRegister() {
+    this.walletNeedsUsername = false;
+    this.walletAddress = '';
+    this.walletSignature = '';
+    this.walletMessage = '';
+    this.walletUsernameForm.reset();
   }
 
   private runServiceHealthChecks() {
