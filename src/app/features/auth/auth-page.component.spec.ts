@@ -8,6 +8,7 @@ import { AuthStore } from '../../core/state/auth.store';
 import { ToastService } from '../../core/ui/toast/toast.service';
 import { ErrorToastService } from '../../core/ui/toast/error-toast.service';
 import { PresenceStore } from '../../core/state/presence.store';
+import { HealthApi } from '../../../api/health/health.api';
 import { UserDto } from '../../../api/users/user.dto';
 
 describe('AuthPageComponent', () => {
@@ -18,6 +19,7 @@ describe('AuthPageComponent', () => {
   let toast: jasmine.SpyObj<ToastService>;
   let errorToast: jasmine.SpyObj<ErrorToastService>;
   let presenceStore: jasmine.SpyObj<PresenceStore>;
+  let healthApi: jasmine.SpyObj<HealthApi>;
   let router: jasmine.SpyObj<Router>;
 
   beforeEach(() => {
@@ -29,7 +31,29 @@ describe('AuthPageComponent', () => {
     toast = jasmine.createSpyObj('ToastService', ['error', 'info', 'success']);
     errorToast = jasmine.createSpyObj('ErrorToastService', ['toastError']);
     presenceStore = jasmine.createSpyObj('PresenceStore', ['setOnline', 'setOffline']);
+    healthApi = jasmine.createSpyObj('HealthApi', [
+      'user',
+      'server',
+      'membership',
+      'message',
+      'presence',
+      'notification',
+      'encryption',
+      'media',
+      'search'
+    ]);
     router = jasmine.createSpyObj('Router', ['navigate']);
+
+    const healthy = of({ status: 'UP' });
+    healthApi.user.and.returnValue(healthy);
+    healthApi.server.and.returnValue(healthy);
+    healthApi.membership.and.returnValue(healthy);
+    healthApi.message.and.returnValue(healthy);
+    healthApi.presence.and.returnValue(healthy);
+    healthApi.notification.and.returnValue(healthy);
+    healthApi.encryption.and.returnValue(healthy);
+    healthApi.media.and.returnValue(healthy);
+    healthApi.search.and.returnValue(healthy);
 
     TestBed.configureTestingModule({
       imports: [AuthPageComponent],
@@ -39,6 +63,7 @@ describe('AuthPageComponent', () => {
         { provide: ToastService, useValue: toast },
         { provide: ErrorToastService, useValue: errorToast },
         { provide: PresenceStore, useValue: presenceStore },
+        { provide: HealthApi, useValue: healthApi },
         { provide: Router, useValue: router }
       ]
     });
@@ -66,6 +91,8 @@ describe('AuthPageComponent', () => {
     expect(authStore.setUser).toHaveBeenCalledWith(user);
     expect(presenceStore.setOnline).toHaveBeenCalledWith(user.id);
     expect(router.navigate).toHaveBeenCalledWith(['/chats']);
+    expect(healthApi.user).toHaveBeenCalled();
+    expect(healthApi.search).toHaveBeenCalled();
   });
 
   it('surfaces login errors through ErrorToastService', () => {

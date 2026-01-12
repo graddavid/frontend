@@ -92,7 +92,7 @@ export class AuthPageComponent {
       tap((user) => {
         this.authStore.setUser(user);
         this.presenceStore.setOnline(user.id);
-        // this.runServiceHealthChecks();
+        this.runServiceHealthChecks();
       }),
       tap(() => this.router.navigate(['/chats'])),
       catchError((err) => {
@@ -237,30 +237,29 @@ export class AuthPageComponent {
     this.walletUsernameForm.reset();
   }
 
-  // private runServiceHealthChecks() {
-  //   const checks = [
-  //     { label: 'User service', obs: this.healthApi.user() },
-  //     { label: 'Server service', obs: this.healthApi.server() },
-  //     { label: 'Membership service', obs: this.healthApi.membership() },
-  //     { label: 'Message service', obs: this.healthApi.message() },
-  //     { label: 'Presence service', obs: this.healthApi.presence() },
-  //     { label: 'Notification service', obs: this.healthApi.notification() },
-  //     { label: 'Encryption service', obs: this.healthApi.encryption() },
-  //     { label: 'Media service', obs: this.healthApi.media() },
-  //     { label: 'Search service', obs: this.healthApi.search() }
-  //   ];
-
-  //   forkJoin(
-  //     checks.map(({ label, obs }) =>
-  //       obs.pipe(
-  //         tap(() => this.toast.success(`${label} healthy`)),
-  //         map(() => ({ label, ok: true })),
-  //         catchError((err) => {
-  //           this.errorToast.toastError(err, `${label} health check failed`);
-  //           return of({ label, ok: false });
-  //         })
-  //       )
-  //     )
-  //   ).subscribe();
-  // }
+  private runServiceHealthChecks() {
+    const checks = [
+      { label: 'User service', obs: this.healthApi.user() },
+      { label: 'Server service', obs: this.healthApi.server() },
+      { label: 'Membership service', obs: this.healthApi.membership() },
+      { label: 'Message service', obs: this.healthApi.message() },
+      { label: 'Presence service', obs: this.healthApi.presence() },
+      { label: 'Notification service', obs: this.healthApi.notification() },
+      { label: 'Encryption service', obs: this.healthApi.encryption() },
+      { label: 'Media service', obs: this.healthApi.media() },
+      { label: 'Search service', obs: this.healthApi.search() }
+    ];
+    forkJoin(
+      checks.map(({ label, obs }) =>
+        obs.pipe(
+          tap(() => this.toast.success(`${label} healthy`)),
+          map(() => ({ label, ok: true })),
+          catchError((err) => {
+            this.errorToast.toastError(err, `${label} health check failed`);
+            return of({ label, ok: false });
+          })
+        )
+      )
+    ).subscribe();
+  }
 }
