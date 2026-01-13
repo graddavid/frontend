@@ -164,24 +164,19 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
   }
 
   downloadAttachment(media: MediaAttachment) {
-    if (media.downloadUrl) {
-      window.open(media.downloadUrl, '_blank', 'noopener');
-      return;
-    }
     if (!media.id) {
       this.toast.error('File cannot be downloaded.');
       return;
     }
-    this.mediaApi.download(media.id).subscribe({
-      next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = media.filename || 'file';
-        a.click();
-        window.URL.revokeObjectURL(url);
+    this.mediaApi.getById(media.id).subscribe({
+      next: (freshMedia) => {
+        if (freshMedia.downloadUrl) {
+          window.open(freshMedia.downloadUrl, '_blank', 'noopener');
+        } else {
+          this.toast.error('Download URL not available.');
+        }
       },
-      error: (err) => this.errorToast.toastError(err, 'Could not download file')
+      error: (err) => this.errorToast.toastError(err, 'Could not get download link')
     });
   }
 
