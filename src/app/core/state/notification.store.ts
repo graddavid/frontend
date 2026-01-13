@@ -128,7 +128,7 @@ export class NotificationStore implements OnDestroy {
       const client = new Client({
         webSocketFactory: () => new SockJS(this.resolveWsUrl()),
         connectHeaders: { 'user-id': userId },
-        reconnectDelay: 5000,
+        reconnectDelay: 10000,
         debug: () => {}
       });
 

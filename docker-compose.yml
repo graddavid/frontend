@@ -2,7 +2,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: DockerFile
+      dockerfile: Dockerfile
       args:
         USER_API: http://user-service:8032
         SERVER_API: http://server-service:8031

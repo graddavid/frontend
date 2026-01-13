@@ -6,6 +6,11 @@ import { authGuard } from './core/state/auth.guard';
 
 export const routes: Routes = [
   {
+    path: '',
+    redirectTo: 'auth',
+    pathMatch: 'full'
+  },
+  {
     path: 'auth',
     component: AuthPageComponent
   },
@@ -14,11 +19,6 @@ export const routes: Routes = [
     component: ShellComponent,
     canActivate: [authGuard],
     children: [
-      {
-        path: '',
-        redirectTo: 'chats',
-        pathMatch: 'full'
-      },
       {
         path: 'chats/:serverId',
         component: ChatsPageComponent
@@ -31,6 +31,6 @@ export const routes: Routes = [
   },
   {
     path: '**',
-    redirectTo: ''
+    redirectTo: 'auth'
   }
 ];
