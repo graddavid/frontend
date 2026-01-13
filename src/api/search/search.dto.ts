@@ -1,4 +1,5 @@
 export interface MessageSearchRequest {
+  userId: string;
   query: string;
   channelId?: string;
   senderId?: string;

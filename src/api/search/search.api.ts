@@ -14,10 +14,12 @@ import {
 
 @Injectable({ providedIn: 'root' })
 export class SearchApi {
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   searchMessages(request: MessageSearchRequest): Observable<SearchPage<MessageSearchResult>> {
-    let params = new HttpParams().set('query', request.query);
+    let params = new HttpParams()
+      .set('userId', request.userId)
+      .set('query', request.query);
     if (request.channelId) {
       params = params.set('channelId', request.channelId);
     }

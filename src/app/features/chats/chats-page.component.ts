@@ -250,7 +250,13 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
       return;
     }
     const { query, channelId, senderId, dateFrom, dateTo } = this.searchForm.getRawValue();
+    const currentUser = this.authStore.snapshot;
+    if (!currentUser?.id) {
+      this.toast.error('You need to sign in to search messages.');
+      return;
+    }
     const request = {
+      userId: currentUser.id,
       query: query.trim(),
       channelId: channelId?.trim() || undefined,
       senderId: senderId?.trim() || undefined,
