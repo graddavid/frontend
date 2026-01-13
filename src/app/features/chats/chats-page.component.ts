@@ -180,6 +180,26 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  downloadDirectly(media: MediaAttachment) {
+    if (!media.id) {
+      this.toast.error('File cannot be downloaded.');
+      return;
+    }
+    this.mediaApi.download(media.id).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = media.filename || 'download';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => this.errorToast.toastError(err, 'Download failed')
+    });
+  }
+
   ngOnDestroy(): void {
     this.routeSub?.unsubscribe();
     this.messageNotificationSub?.unsubscribe();

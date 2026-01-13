@@ -242,10 +242,13 @@
               </div>
               <div class="content">{{ message.content }}</div>
               <div class="attachments" *ngIf="message.media?.length">
-                <button type="button" class="attachment" *ngFor="let media of message.media"
-                  (click)="downloadAttachment(media)">
-                  📎 {{ media.filename }} ({{ media.contentType || 'file' }})
-                </button>
+                <div class="attachment-item" *ngFor="let media of message.media">
+                  <span class="attachment-info" (click)="downloadAttachment(media)">
+                    📎 {{ media.filename }} ({{ media.contentType || 'file' }})
+                  </span>
+                  <button type="button" class="download-btn" title="Download file"
+                    (click)="downloadDirectly(media)">⬇</button>
+                </div>
               </div>
             </div>
           </div>
