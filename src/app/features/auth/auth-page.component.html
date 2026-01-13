@@ -1,9 +1,9 @@
 <section class="auth">
   <div class="panel">
     <header>
-      <p class="eyebrow">Access required</p>
+      <p class="eyebrow">Welcome</p>
       <h1>Login or Register</h1>
-      <p class="hint">All requests call the User API; navigation happens only after a successful response.</p>
+      <p class="hint">Sign in to your account or create a new one to get started.</p>
     </header>
 
     <ng-container *ngIf="(user$ | async) as user; else authForms">

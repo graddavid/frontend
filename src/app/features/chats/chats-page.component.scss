@@ -589,3 +589,46 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+.attachments {
+  display: flex;
+  flex-direction: column;
+  gap: theme.$space-2;
+  margin-top: theme.$space-2;
+}
+
+.attachment-item {
+  display: inline-flex;
+  align-items: center;
+  gap: theme.$space-2;
+  padding: theme.$space-2;
+  border-radius: theme.$radius-sm;
+  border: 1px solid theme.$color-border;
+  background: theme.$color-surface-2;
+  width: fit-content;
+}
+
+.attachment-info {
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.attachment-info:hover {
+  text-decoration: underline;
+}
+
+.download-btn {
+  padding: theme.$space-1 theme.$space-2;
+  font-size: 12px;
+  border-radius: theme.$radius-sm;
+  border: 1px solid theme.$color-border;
+  background: theme.$color-surface;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.download-btn:hover {
+  background: theme.$color-accent;
+  color: #0a0b0f;
+  border-color: theme.$color-accent;
+}

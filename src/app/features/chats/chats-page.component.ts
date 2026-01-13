@@ -164,10 +164,23 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
   }
 
   downloadAttachment(media: MediaAttachment) {
-    if (media.downloadUrl) {
-      window.open(media.downloadUrl, '_blank', 'noopener');
+    if (!media.id) {
+      this.toast.error('File cannot be downloaded.');
       return;
     }
+    this.mediaApi.getById(media.id).subscribe({
+      next: (freshMedia) => {
+        if (freshMedia.downloadUrl) {
+          window.open(freshMedia.downloadUrl, '_blank', 'noopener');
+        } else {
+          this.toast.error('Download URL not available.');
+        }
+      },
+      error: (err) => this.errorToast.toastError(err, 'Could not get download link')
+    });
+  }
+
+  downloadDirectly(media: MediaAttachment) {
     if (!media.id) {
       this.toast.error('File cannot be downloaded.');
       return;
@@ -177,11 +190,13 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = media.filename || 'file';
+        a.download = media.filename || 'download';
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
       },
-      error: (err) => this.errorToast.toastError(err, 'Could not download file')
+      error: (err) => this.errorToast.toastError(err, 'Download failed')
     });
   }
 
@@ -255,7 +270,13 @@ export class ChatsPageComponent implements OnInit, OnDestroy {
       return;
     }
     const { query, channelId, senderId, dateFrom, dateTo } = this.searchForm.getRawValue();
+    const currentUser = this.authStore.snapshot;
+    if (!currentUser?.id) {
+      this.toast.error('You need to sign in to search messages.');
+      return;
+    }
     const request = {
+      userId: currentUser.id,
       query: query.trim(),
       channelId: channelId?.trim() || undefined,
       senderId: senderId?.trim() || undefined,

@@ -3,7 +3,7 @@
     <div>
       <p class="eyebrow">Conversations</p>
       <h1>Chats hub</h1>
-      <p class="hint">DMs and group chats pulled from the Server service.</p>
+      <p class="hint">Your direct messages and group conversations.</p>
     </div>
     <div class="header-actions">
       <button type="button" class="primary" (click)="toggleCreatePopover()">New chat</button>
@@ -19,51 +19,33 @@
       </header>
       <form [formGroup]="createForm" (ngSubmit)="createChat()" class="create-form">
         <div class="type-toggle">
-          <button
-            type="button"
-            [class.active]="createForm.controls.type.value === ServerType.DM"
-            (click)="setType(ServerType.DM)"
-          >
+          <button type="button" [class.active]="createForm.controls.type.value === ServerType.DM"
+            (click)="setType(ServerType.DM)">
             Direct message
           </button>
-          <button
-            type="button"
-            [class.active]="createForm.controls.type.value === ServerType.GROUP"
-            (click)="setType(ServerType.GROUP)"
-          >
+          <button type="button" [class.active]="createForm.controls.type.value === ServerType.GROUP"
+            (click)="setType(ServerType.GROUP)">
             Group chat
           </button>
         </div>
 
         <label>
           <span>Chat name</span>
-          <input
-            type="text"
-            formControlName="name"
-            placeholder="Project Alpha or Username"
-            [disabled]="createPending"
-          />
+          <input type="text" formControlName="name" placeholder="Project Alpha or Username"
+            [disabled]="createPending" />
         </label>
 
         <label>
           <span>About (optional)</span>
-          <textarea
-            rows="2"
-            formControlName="bio"
-            placeholder="Short description for the chat"
-            [disabled]="createPending"
-          ></textarea>
+          <textarea rows="2" formControlName="bio" placeholder="Short description for the chat"
+            [disabled]="createPending"></textarea>
         </label>
 
         <div class="user-search" *ngIf="createForm.controls.type.value === ServerType.DM">
           <label>
             <span>Find user</span>
-            <input
-              type="text"
-              formControlName="userQuery"
-              placeholder="Search by username"
-              [disabled]="createPending"
-            />
+            <input type="text" formControlName="userQuery" placeholder="Search by username"
+              [disabled]="createPending" />
           </label>
 
           <div class="pill" *ngIf="selectedUser">
@@ -79,7 +61,8 @@
             <ul class="user-results" *ngIf="userResults.length > 0">
               <li *ngFor="let user of userResults" (click)="selectUser(user)">
                 <div class="name">
-                  <span class="presence" [class.online]="presenceStore.presence(user.id) === 'ONLINE'" [class.offline]="presenceStore.presence(user.id) === 'OFFLINE'"></span>
+                  <span class="presence" [class.online]="presenceStore.presence(user.id) === 'ONLINE'"
+                    [class.offline]="presenceStore.presence(user.id) === 'OFFLINE'"></span>
                   {{ user.displayName || user.username }}
                 </div>
                 <div class="meta">{{ '@'+user.username }}</div>
@@ -101,7 +84,7 @@
   </header>
 
   <div class="layout">
-     <div class="lists">
+    <div class="lists">
       <div class="panel">
         <header>
           <div>
@@ -116,11 +99,8 @@
           <ng-container *ngIf="dmServers as dmServers">
             <p class="hint" *ngIf="dmServers.length === 0">No DMs yet.</p>
             <ul class="list">
-              <li
-                *ngFor="let server of dmServers; trackBy: trackByServerId"
-                (click)="openServer(server.id)"
-                [class.active]="selectedServerId === server.id"
-              >
+              <li *ngFor="let server of dmServers; trackBy: trackByServerId" (click)="openServer(server.id)"
+                [class.active]="selectedServerId === server.id">
                 <div class="name">{{ dmNameOverrides[server.id] || server.name }}</div>
                 <div class="meta">Direct message</div>
               </li>
@@ -143,14 +123,11 @@
           <ng-container *ngIf="groupServers as groupServers">
             <p class="hint" *ngIf="groupServers.length === 0">No group chats yet.</p>
             <ul class="list">
-              <li
-                *ngFor="let server of groupServers; trackBy: trackByServerId"
-                (click)="openServer(server.id)"
-                [class.active]="selectedServerId === server.id"
-              >
+              <li *ngFor="let server of groupServers; trackBy: trackByServerId" (click)="openServer(server.id)"
+                [class.active]="selectedServerId === server.id">
                 <div class="name">{{ server.name }}</div>
                 <div class="meta">
-                  {{ server.profile?.bio || 'Group created via Server service' }}
+                  {{ server.profile?.bio || 'Group chat' }}
                 </div>
               </li>
             </ul>
@@ -169,27 +146,16 @@
           </div>
           <div class="header-actions-small">
             <span class="tag">{{ server.type }}</span>
-            <button
-              *ngIf="server.type === ServerType.GROUP"
-              type="button"
-              class="ghost small"
-              (click)="toggleManage()"
-            >
+            <button *ngIf="server.type === ServerType.GROUP" type="button" class="ghost small" (click)="toggleManage()">
               Members
             </button>
           </div>
         </div>
 
-        <div
-          class="manage-backdrop"
-          *ngIf="server.type === ServerType.GROUP && manageOpen"
-          (click)="toggleManage()"
-        ></div>
-        <div
-          class="manage-popover"
-          *ngIf="server.type === ServerType.GROUP && manageOpen"
-          (click)="$event.stopPropagation()"
-        >
+        <div class="manage-backdrop" *ngIf="server.type === ServerType.GROUP && manageOpen" (click)="toggleManage()">
+        </div>
+        <div class="manage-popover" *ngIf="server.type === ServerType.GROUP && manageOpen"
+          (click)="$event.stopPropagation()">
           <div class="manage-header">
             <div>
               <p class="eyebrow">Server controls</p>
@@ -202,12 +168,8 @@
             <form [formGroup]="memberForm" (ngSubmit)="addMember(server.id)" class="member-form">
               <label>
                 <span>Add member</span>
-                <input
-                  type="text"
-                  formControlName="userQuery"
-                  placeholder="Search users to add"
-                  [disabled]="addMemberPending"
-                />
+                <input type="text" formControlName="userQuery" placeholder="Search users to add"
+                  [disabled]="addMemberPending" />
               </label>
               <div class="pill" *ngIf="selectedMember">
                 <span>{{ selectedMember.displayName || selectedMember.username }}</span>
@@ -222,7 +184,8 @@
                 <ul class="user-results" *ngIf="memberSearchResults.length > 0">
                   <li *ngFor="let user of memberSearchResults" (click)="selectMemberCandidate(user)">
                     <div class="name">
-                      <span class="presence" [class.online]="presenceStore.presence(user.id) === 'ONLINE'" [class.offline]="presenceStore.presence(user.id) === 'OFFLINE'"></span>
+                      <span class="presence" [class.online]="presenceStore.presence(user.id) === 'ONLINE'"
+                        [class.offline]="presenceStore.presence(user.id) === 'OFFLINE'"></span>
                       {{ user.displayName || user.username }}
                     </div>
                     <div class="meta">{{ '@'+user.username }}</div>
@@ -243,24 +206,17 @@
               <ul class="member-list" *ngIf="members.length > 0">
                 <li *ngFor="let member of members; trackBy: trackByUserId">
                   <div class="member-id">
-                    <span class="presence" [class.online]="presenceStore.presence(member) === 'ONLINE'" [class.offline]="presenceStore.presence(member) === 'OFFLINE'"></span>
+                    <span class="presence" [class.online]="presenceStore.presence(member) === 'ONLINE'"
+                      [class.offline]="presenceStore.presence(member) === 'OFFLINE'"></span>
                     {{ userLabel(member) }}
                   </div>
                   <div class="member-actions">
-                    <button
-                      type="button"
-                      class="ghost"
-                      (click)="removeMember(server.id, member)"
-                      [disabled]="banPendingUserId === member"
-                    >
+                    <button type="button" class="ghost" (click)="removeMember(server.id, member)"
+                      [disabled]="banPendingUserId === member">
                       {{ banPendingUserId === member ? 'Removing...' : 'Remove' }}
                     </button>
-                    <button
-                      type="button"
-                      class="ghost danger"
-                      (click)="banMember(server.id, member)"
-                      [disabled]="banPendingUserId === member"
-                    >
+                    <button type="button" class="ghost danger" (click)="banMember(server.id, member)"
+                      [disabled]="banPendingUserId === member">
                       {{ banPendingUserId === member ? 'Banning...' : 'Ban' }}
                     </button>
                   </div>
@@ -270,35 +226,29 @@
           </div>
         </div>
 
-        <div
-          class="messages"
-          (scroll)="onMessagesScroll($event, server.id)"
-        >
+        <div class="messages" (scroll)="onMessagesScroll($event, server.id)">
           <div class="state" *ngIf="messagesLoading && messages.length === 0">Loading messages...</div>
           <p class="hint" *ngIf="!messages.length && !messagesLoading">No messages yet.</p>
-          <div
-            class="message"
-            *ngFor="let message of messages; trackBy: trackByMessageId"
-            [class.own]="isOwnMessage(message)"
-          >
+          <div class="message" *ngFor="let message of messages; trackBy: trackByMessageId"
+            [class.own]="isOwnMessage(message)">
             <div class="bubble">
               <div class="meta-line">
                 <span class="sender">
-                  <span class="presence" [class.online]="(message.senderId | presenceStatus) === 'ONLINE'" [class.offline]="(message.senderId | presenceStatus) === 'OFFLINE'"></span>
+                  <span class="presence" [class.online]="(message.senderId | presenceStatus) === 'ONLINE'"
+                    [class.offline]="(message.senderId | presenceStatus) === 'OFFLINE'"></span>
                   {{ userLabels[message.senderId] || message.senderId }}&nbsp;
                 </span>
                 <span class="time">{{ message.dateSent | date:'short' }}</span>
               </div>
               <div class="content">{{ message.content }}</div>
               <div class="attachments" *ngIf="message.media?.length">
-                <button
-                  type="button"
-                  class="attachment"
-                  *ngFor="let media of message.media"
-                  (click)="downloadAttachment(media)"
-                >
-                  📎 {{ media.filename }} ({{ media.contentType || 'file' }})
-                </button>
+                <div class="attachment-item" *ngFor="let media of message.media">
+                  <span class="attachment-info" (click)="downloadAttachment(media)">
+                    📎 {{ media.filename }} ({{ media.contentType || 'file' }})
+                  </span>
+                  <button type="button" class="download-btn" title="Download file"
+                    (click)="downloadDirectly(media)">⬇</button>
+                </div>
               </div>
             </div>
           </div>
@@ -314,21 +264,10 @@
             </span>
           </div>
           <div class="input-row">
-            <input
-              type="file"
-              multiple
-              #fileInput
-              (change)="onFilesSelected($event)"
-              [disabled]="sendPending"
-              class="file-input hide-file-label"
-            />
-            <input
-              type="text"
-              formControlName="content"
-              placeholder="Message {{ getServerName(server) }}"
-              [disabled]="sendPending"
-              class="message-input"
-            />
+            <input type="file" multiple #fileInput (change)="onFilesSelected($event)" [disabled]="sendPending"
+              class="file-input hide-file-label" />
+            <input type="text" formControlName="content" placeholder="Message {{ getServerName(server) }}"
+              [disabled]="sendPending" class="message-input" />
             <button type="submit" class="primary send-square" [disabled]="sendPending">
               {{ sendPending ? '…' : '➤' }}
             </button>
@@ -339,7 +278,7 @@
       <ng-template #emptyChat>
         <div class="chat-placeholder">
           <div class="title">Pick a chat</div>
-            <p class="hint">Choose a DM or group to open its conversation.</p>
+          <p class="hint">Choose a DM or group to open its conversation.</p>
           <p class="meta">We keep DMs and group servers separated for clarity.</p>
         </div>
       </ng-template>
@@ -362,7 +301,8 @@
       </label>
       <label>
         <span>Sender</span>
-        <input type="text" formControlName="senderId" placeholder="Sender ID (optional)" [disabled]="searchPending" />
+        <input type="text" formControlName="senderId" placeholder="Filter by user (optional)"
+          [disabled]="searchPending" />
       </label>
       <div class="date-row">
         <label>
