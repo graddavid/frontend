@@ -252,10 +252,10 @@ export class AuthPageComponent {
     forkJoin(
       checks.map(({ label, obs }) =>
         obs.pipe(
-          tap(() => this.toast.success(`${label} healthy`)),
+          // tap(() => this.toast.success(`${label} healthy`)),
           map(() => ({ label, ok: true })),
           catchError((err) => {
-            this.errorToast.toastError(err, `${label} health check failed`);
+            // this.errorToast.toastError(err, `${label} health check failed`);
             return of({ label, ok: false });
           })
         )
